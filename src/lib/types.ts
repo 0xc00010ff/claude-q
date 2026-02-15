@@ -17,6 +17,14 @@ export interface ConfigData {
 // ── Task ─────────────────────────────────────────────────
 export type TaskStatus = "todo" | "in-progress" | "verify" | "done";
 
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  dataUrl?: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -28,6 +36,7 @@ export interface Task {
   humanSteps?: string;
   agentLog?: string;
   locked?: boolean;
+  attachments?: TaskAttachment[];
   createdAt: string;
   updatedAt: string;
 }

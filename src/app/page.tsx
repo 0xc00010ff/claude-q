@@ -9,8 +9,7 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { LiveTab } from '@/components/LiveTab';
 import { CodeTab } from '@/components/CodeTab';
 import { AddProjectModal } from '@/components/AddProjectModal';
-import { AddTaskModal } from '@/components/AddTaskModal';
-import { TaskDetailModal } from '@/components/TaskDetailModal';
+import { TaskModal } from '@/components/TaskModal';
 import type { Project, Task, ChatLogEntry } from '@/lib/types';
 
 export default function Dashboard() {
@@ -24,8 +23,7 @@ export default function Dashboard() {
   const [isDragging, setIsDragging] = useState(false);
   const [isChatView, setIsChatView] = useState(false);
   const [showAddProject, setShowAddProject] = useState(false);
-  const [showAddTask, setShowAddTask] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [modalTask, setModalTask] = useState<Task | null>(null);
   const [mainChatMessages, setMainChatMessages] = useState<ChatLogEntry[]>([
     {
       role: 'twin',
@@ -127,8 +125,8 @@ export default function Dashboard() {
         t.id === taskId ? { ...t, ...data, updatedAt: new Date().toISOString() } : t
       ),
     }));
-    // Also update selected task if it's the one being edited
-    setSelectedTask((prev) =>
+    // Also update modal task if it's the one being edited
+    setModalTask((prev) =>
       prev && prev.id === taskId
         ? { ...prev, ...data, updatedAt: new Date().toISOString() }
         : prev
@@ -161,6 +159,21 @@ export default function Dashboard() {
       timestamp: new Date().toISOString(),
     };
     setMainChatMessages((prev) => [...prev, entry]);
+  };
+
+  const handleAddTask = async () => {
+    if (!activeProjectId) return;
+    const res = await fetch(`/api/projects/${activeProjectId}/tasks`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: '', description: '' }),
+    });
+    const newTask: Task = await res.json();
+    setTasksByProject((prev) => ({
+      ...prev,
+      [activeProjectId]: [...(prev[activeProjectId] || []), newTask],
+    }));
+    setModalTask(newTask);
   };
 
   // Resize handle
@@ -254,9 +267,9 @@ export default function Dashboard() {
                     <KanbanBoard
                       tasks={activeTasks}
                       onReorderTasks={reorderTasks}
-                      onAddTask={() => setShowAddTask(true)}
+                      onAddTask={handleAddTask}
                       onDeleteTask={deleteTask}
-                      onClickTask={setSelectedTask}
+                      onClickTask={setModalTask}
                       onRefreshTasks={refreshTasks}
                     />
                   </div>
@@ -292,20 +305,22 @@ export default function Dashboard() {
         onCreated={fetchProjects}
       />
 
-      {activeProjectId && (
-        <AddTaskModal
-          open={showAddTask}
-          projectId={activeProjectId}
-          onClose={() => setShowAddTask(false)}
-          onCreated={refreshTasks}
-        />
-      )}
-
-      {selectedTask && (
-        <TaskDetailModal
-          task={selectedTask}
-          onClose={() => setSelectedTask(null)}
-          onUpdate={updateTask}
+      {modalTask && (
+        <TaskModal
+          task={modalTask}
+          isOpen={true}
+          onClose={async () => {
+            // Delete task if title is still empty (user cancelled creation)
+            const current = (tasksByProject[activeProjectId] || []).find(
+              (t) => t.id === modalTask.id
+            );
+            if (current && !current.title.trim()) {
+              await deleteTask(current.id);
+            }
+            setModalTask(null);
+            refreshTasks();
+          }}
+          onSave={updateTask}
         />
       )}
     </div>

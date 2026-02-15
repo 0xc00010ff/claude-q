@@ -19,14 +19,8 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   const body = await request.json();
-  const { title, description } = body;
-
-  if (!title || !description) {
-    return NextResponse.json(
-      { error: "title and description are required" },
-      { status: 400 }
-    );
-  }
+  const title = body.title ?? "";
+  const description = body.description ?? "";
 
   const task = await createTask(params.id, { title, description });
   return NextResponse.json(task, { status: 201 });
