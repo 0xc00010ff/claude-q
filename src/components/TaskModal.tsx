@@ -220,6 +220,16 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
             ref={descriptionRef}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Backspace' && description === '') {
+                e.preventDefault();
+                const input = titleRef.current;
+                if (input) {
+                  input.focus();
+                  input.setSelectionRange(input.value.length, input.value.length);
+                }
+              }
+            }}
             className="w-full min-h-[280px] bg-transparent text-sm text-warm-700 dark:text-zinc-400 placeholder-warm-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
             placeholder="Write something..."
           />
