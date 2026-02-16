@@ -33,7 +33,7 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
   const showTerminal = (task.status === 'in-progress' || task.status === 'verify') && !isQueued;
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [topPanelPercent, setTopPanelPercent] = useState(25);
+  const [topPanelPercent, setTopPanelPercent] = useState(30);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const bottomPanelRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
