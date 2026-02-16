@@ -184,7 +184,7 @@ export function KanbanBoard({
       setLocalTasks((prev) => {
         if (!prev) return prev;
         return prev.map((t) =>
-          t.id === activeId ? { ...t, status: targetStatus } : t
+          t.id === activeId ? { ...t, status: targetStatus, order: -1 } : t
         );
       });
     } else if (!isOverColumn) {
