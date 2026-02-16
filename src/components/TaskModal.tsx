@@ -30,6 +30,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
   const [dispatching, setDispatching] = useState(false);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -206,10 +207,17 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
             type="text"
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                descriptionRef.current?.focus();
+              }
+            }}
             className="w-full bg-transparent text-xl font-semibold text-warm-900 dark:text-zinc-100 placeholder-warm-500 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
             placeholder="Untitled"
           />
           <textarea
+            ref={descriptionRef}
             value={description}
             onChange={(e) => handleDescriptionChange(e.target.value)}
             className="w-full min-h-[280px] bg-transparent text-sm text-warm-700 dark:text-zinc-400 placeholder-warm-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
