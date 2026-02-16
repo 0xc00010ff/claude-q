@@ -46,7 +46,9 @@ ${taskDescription}
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
 2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
-${callbackCurl}`;
+${callbackCurl}
+3. After signaling, change to the main project directory for any follow-up work:
+cd ${projectPath}`;
     claudeFlags = '--dangerously-skip-permissions';
   } else if (mode === 'answer') {
     prompt = `# ${taskTitle}
@@ -56,7 +58,10 @@ ${taskDescription}
 IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.
 
 When completely finished, signal complete:
-${callbackCurl}`;
+${callbackCurl}
+
+After signaling, change to the main project directory for any follow-up work:
+cd ${projectPath}`;
     claudeFlags = '--dangerously-skip-permissions';
   } else {
     prompt = `# ${taskTitle}
@@ -66,7 +71,9 @@ ${taskDescription}
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
 2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
-${callbackCurl}`;
+${callbackCurl}
+3. After signaling, change to the main project directory for any follow-up work:
+cd ${projectPath}`;
     claudeFlags = '--dangerously-skip-permissions';
   }
 

@@ -55,6 +55,9 @@ export async function PATCH(request: Request, { params }: Params) {
             await updateTask(params.id, params.taskId, { findings: newFindings });
             updated.findings = newFindings;
           }
+          if (result.merged) {
+            removeWorktree(projectPath, shortId);
+          }
         }
       }
 
