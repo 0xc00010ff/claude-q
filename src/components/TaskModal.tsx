@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
-import { XIcon, PaperclipIcon, FileIcon } from 'lucide-react';
+import { XIcon, PaperclipIcon, FileIcon, PlayIcon } from 'lucide-react';
 import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 
 interface TaskModalProps {
@@ -9,6 +9,7 @@ interface TaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (taskId: string, updates: Partial<Task>) => void;
+  onMoveToInProgress?: (taskId: string) => void;
 }
 
 function formatSize(bytes: number): string {
@@ -17,7 +18,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
+export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }: TaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
   const [mode, setMode] = useState<TaskMode>(task.mode || 'code');
@@ -283,14 +284,31 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
             </div>
           )}
 
-          {/* Add attachment button */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs w-fit"
-          >
-            <PaperclipIcon className="w-3.5 h-3.5" />
-            <span>Attach file</span>
-          </button>
+          {/* Toolbar row */}
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs w-fit"
+            >
+              <PaperclipIcon className="w-3.5 h-3.5" />
+              <span>Attach file</span>
+            </button>
+
+            {onMoveToInProgress && (
+              <button
+                onClick={() => {
+                  if (saveTimeout.current) clearTimeout(saveTimeout.current);
+                  onSave(task.id, { title, description, attachments, mode });
+                  onMoveToInProgress(task.id);
+                }}
+                disabled={!title.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 border border-blue-500/50 rounded-md hover:bg-blue-500/10 hover:border-blue-400 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+              >
+                <PlayIcon className="w-3 h-3" />
+                Move to In Progress
+              </button>
+            )}
+          </div>
           <input
             ref={fileInputRef}
             type="file"
