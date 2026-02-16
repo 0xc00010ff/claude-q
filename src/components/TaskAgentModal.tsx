@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   XIcon,
   AlertTriangleIcon,
@@ -33,6 +33,36 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
   const showTerminal = (task.status === 'in-progress' || task.status === 'verify') && !isQueued;
   const [dispatching, setDispatching] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [topPanelPercent, setTopPanelPercent] = useState(50);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+
+  const handleResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    isDraggingRef.current = true;
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!isDraggingRef.current || !panel) return;
+      const rect = panel.getBoundingClientRect();
+      // Account for the close button area at top and the complete button at bottom
+      const pct = ((ev.clientY - rect.top) / rect.height) * 100;
+      setTopPanelPercent(Math.min(Math.max(pct, 15), 85));
+    };
+    const onMouseUp = () => {
+      isDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, []);
+
   // Load xterm CSS
   useEffect(() => {
     const linkId = 'xterm-css';
@@ -105,7 +135,7 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
         ) : null}
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div className={`${showTerminal || isQueued ? 'w-[30%] border-l border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
+        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[30%] border-l border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden`}>
           {/* Close button */}
           <button
             onClick={onClose}
@@ -115,7 +145,7 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
           </button>
 
           {/* Top half: title, status, description */}
-          <div className="flex-1 overflow-y-auto p-5 pt-12 space-y-4">
+          <div className="overflow-y-auto p-5 pt-12 space-y-4 shrink-0" style={{ height: `${topPanelPercent}%` }}>
             {/* Status badge */}
             <div className="flex items-center gap-1.5">
               {isQueued ? (
@@ -179,8 +209,16 @@ export function TaskAgentModal({ task, projectId, isQueued, onClose, onComplete 
             )}
           </div>
 
+          {/* Resize handle */}
+          <div
+            onMouseDown={handleResizeMouseDown}
+            className="shrink-0 h-1 cursor-row-resize border-t border-zinc-800 hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors group relative"
+          >
+            <div className="absolute inset-x-0 -top-1 -bottom-1" />
+          </div>
+
           {/* Bottom half: agent findings & summary */}
-          <div className={`flex-1 overflow-y-auto border-t border-zinc-800 ${isLocked && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
+          <div className={`flex-1 min-h-0 overflow-y-auto ${isLocked && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
             {findings.length > 0 || !isLocked ? (
               <div className="flex items-center gap-2">
                 <ClipboardListIcon className="w-3.5 h-3.5 text-zinc-500" />
