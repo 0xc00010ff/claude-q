@@ -23,7 +23,7 @@ export function TopBar({ project, activeTab, onTabChange }: TopBarProps) {
     <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between px-6 flex-shrink-0">
       <div className="flex flex-col justify-center">
         <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">
-          {project.name}
+          {project.path.replace(/\/+$/, "").split("/").pop() || project.name}
         </h1>
         <span className="text-xs font-mono text-zinc-500 mt-0.5">
           {project.path}

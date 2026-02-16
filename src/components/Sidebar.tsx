@@ -26,11 +26,15 @@ import {
   CheckCircle2Icon,
   MoreHorizontalIcon,
   GripVerticalIcon,
-  PencilIcon,
   Trash2Icon,
 } from "lucide-react";
 import type { Project, Task, TaskStatus } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
+
+function folderName(project: Project): string {
+  const p = project.path.replace(/\/+$/, "");
+  return p.split("/").pop() || project.name;
+}
 
 interface SidebarProps {
   onAddProject: () => void;
@@ -88,11 +92,10 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
 
 interface ProjectMenuProps {
   project: Project;
-  onRename: (project: Project) => void;
   onDelete: (project: Project) => void;
 }
 
-function ProjectMenu({ project, onRename, onDelete }: ProjectMenuProps) {
+function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -126,18 +129,6 @@ function ProjectMenu({ project, onRename, onDelete }: ProjectMenuProps) {
               e.preventDefault();
               e.stopPropagation();
               setOpen(false);
-              onRename(project);
-            }}
-            className="w-full text-left px-3 py-1.5 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
-          >
-            <PencilIcon className="w-3.5 h-3.5" />
-            Rename
-          </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setOpen(false);
               onDelete(project);
             }}
             className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
@@ -151,48 +142,6 @@ function ProjectMenu({ project, onRename, onDelete }: ProjectMenuProps) {
   );
 }
 
-// ── Rename Inline Input ──────────────────────────────────
-
-function RenameInput({
-  project,
-  onDone,
-}: {
-  project: Project;
-  onDone: (newName: string | null) => void;
-}) {
-  const [value, setValue] = useState(project.name);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-    inputRef.current?.select();
-  }, []);
-
-  const submit = () => {
-    const trimmed = value.trim();
-    if (trimmed && trimmed !== project.name) {
-      onDone(trimmed);
-    } else {
-      onDone(null);
-    }
-  };
-
-  return (
-    <input
-      ref={inputRef}
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-      onBlur={submit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") submit();
-        if (e.key === "Escape") onDone(null);
-      }}
-      onClick={(e) => e.preventDefault()}
-      className="text-sm font-medium leading-tight bg-white dark:bg-zinc-700 border border-blue-500 rounded px-1 py-0.5 text-zinc-900 dark:text-zinc-100 outline-none w-full"
-    />
-  );
-}
-
 // ── Sortable Project Item ────────────────────────────────
 
 interface SortableProjectProps {
@@ -200,9 +149,6 @@ interface SortableProjectProps {
   index: number;
   isActive: boolean;
   tasks: Task[];
-  renamingId: string | null;
-  onRename: (project: Project) => void;
-  onRenameDone: (project: Project, newName: string | null) => void;
   onDelete: (project: Project) => void;
 }
 
@@ -211,9 +157,6 @@ function SortableProject({
   index,
   isActive,
   tasks,
-  renamingId,
-  onRename,
-  onRenameDone,
   onDelete,
 }: SortableProjectProps) {
   const {
@@ -258,23 +201,15 @@ function SortableProject({
           </button>
 
           <div className="flex-1 min-w-0">
-            {renamingId === project.id ? (
-              <RenameInput
-                project={project}
-                onDone={(newName) => onRenameDone(project, newName)}
-              />
-            ) : (
-              <div
-                className={`text-sm font-medium leading-tight truncate ${isActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
-              >
-                {project.name}
-              </div>
-            )}
+            <div
+              className={`text-sm font-medium leading-tight truncate ${isActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
+            >
+              {folderName(project)}
+            </div>
           </div>
 
           <ProjectMenu
             project={project}
-            onRename={onRename}
             onDelete={onDelete}
           />
         </div>
@@ -299,7 +234,6 @@ export function Sidebar({ onAddProject }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { projects, tasksByProject, refreshProjects } = useProjects();
-  const [renamingId, setRenamingId] = useState<string | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -327,25 +261,6 @@ export function Sidebar({ onAddProject }: SidebarProps) {
       await refreshProjects();
     },
     [projects, refreshProjects]
-  );
-
-  const handleRename = useCallback((project: Project) => {
-    setRenamingId(project.id);
-  }, []);
-
-  const handleRenameDone = useCallback(
-    async (project: Project, newName: string | null) => {
-      setRenamingId(null);
-      if (!newName) return;
-
-      await fetch(`/api/projects/${project.id}/rename`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName }),
-      });
-      await refreshProjects();
-    },
-    [refreshProjects]
   );
 
   const handleDelete = useCallback(
@@ -416,9 +331,6 @@ export function Sidebar({ onAddProject }: SidebarProps) {
                   index={index}
                   isActive={isActive}
                   tasks={tasks}
-                  renamingId={renamingId}
-                  onRename={handleRename}
-                  onRenameDone={handleRenameDone}
                   onDelete={handleDelete}
                 />
               );
