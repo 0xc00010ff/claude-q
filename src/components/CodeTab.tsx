@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import 'highlight.js/styles/github-dark.css';
 import dynamic from 'next/dynamic';
 import {
@@ -10,7 +10,6 @@ import {
   Code,
   Loader2,
 } from 'lucide-react';
-import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
@@ -41,6 +40,10 @@ const OPEN_APPS = [
   { key: 'finder', label: 'Finder' },
 ];
 
+const DEFAULT_TREE_WIDTH = 260;
+const MIN_TREE_WIDTH = 140;
+const MAX_TREE_WIDTH = 600;
+
 export function CodeTab({ project }: CodeTabProps) {
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
@@ -49,12 +52,33 @@ export function CodeTab({ project }: CodeTabProps) {
   const [loading, setLoading] = useState(false);
   const [mdView, setMdView] = useState<'raw' | 'pretty'>('pretty');
   const [openMenuOpen, setOpenMenuOpen] = useState(false);
+  const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const isMarkdown = useMemo(() => {
     if (!selectedPath) return false;
     const ext = selectedPath.split('.').pop()?.toLowerCase();
     return ext === 'md' || ext === 'mdx';
   }, [selectedPath]);
+
+  // Resize drag handling
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      setTreeWidth(Math.min(MAX_TREE_WIDTH, Math.max(MIN_TREE_WIDTH, x)));
+    };
+    const handleMouseUp = () => setIsDragging(false);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging]);
 
   // Load file tree
   useEffect(() => {
@@ -108,7 +132,7 @@ export function CodeTab({ project }: CodeTabProps) {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-warm-50 dark:bg-zinc-950">
+    <div className="flex-1 flex flex-col h-full overflow-hidden bg-warm-50 dark:bg-zinc-950">
       {/* Sub-header bar */}
       <div className="h-10 flex-shrink-0 flex items-center justify-between px-3 border-b border-warm-300 dark:border-zinc-800 bg-warm-100 dark:bg-zinc-900/80">
         <div className="flex items-center gap-2">
@@ -173,67 +197,75 @@ export function CodeTab({ project }: CodeTabProps) {
       </div>
 
       {/* Main content: file tree + editor */}
-      <div className="flex-1 min-h-0 relative">
-        <PanelGroup orientation="horizontal" className="absolute inset-0">
-          <Panel defaultSize={25} minSize={15} maxSize={50}>
-            <div className="h-full overflow-hidden border-r border-warm-300 dark:border-zinc-800 bg-warm-50 dark:bg-zinc-900/50">
-              <div className="h-full overflow-y-auto">
-                <FileTree
-                  nodes={tree}
-                  selectedPath={selectedPath}
-                  onSelectFile={loadFile}
-                />
+      <div ref={containerRef} className="flex-1 flex min-h-0 overflow-hidden">
+        {/* File tree */}
+        <div
+          className="h-full overflow-y-auto border-r border-warm-300 dark:border-zinc-800 bg-warm-50 dark:bg-zinc-900/50 flex-shrink-0"
+          style={{ width: treeWidth }}
+        >
+          <FileTree
+            nodes={tree}
+            selectedPath={selectedPath}
+            onSelectFile={loadFile}
+          />
+        </div>
+
+        {/* Resize handle */}
+        <div
+          onMouseDown={(e) => { e.preventDefault(); setIsDragging(true); }}
+          className={`w-[5px] flex-shrink-0 cursor-col-resize transition-colors ${
+            isDragging
+              ? 'bg-blue-500'
+              : 'bg-warm-200 dark:bg-zinc-800 hover:bg-blue-400 dark:hover:bg-blue-500'
+          }`}
+        />
+
+        {/* Editor */}
+        <div className="flex-1 min-w-0 h-full overflow-hidden">
+          {!selectedPath ? (
+            <div className="h-full flex items-center justify-center text-zinc-500 text-sm">
+              Select a file to view
+            </div>
+          ) : loading ? (
+            <div className="h-full flex items-center justify-center text-zinc-500">
+              <Loader2 className="w-5 h-5 animate-spin mr-2" />
+              Loading...
+            </div>
+          ) : isMarkdown && mdView === 'pretty' ? (
+            <div className="h-full overflow-y-auto p-6">
+              <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-zinc-800 prose-pre:text-zinc-100 prose-code:text-blue-400 prose-headings:text-warm-900 dark:prose-headings:text-zinc-100">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeHighlight]}
+                >
+                  {fileContent}
+                </ReactMarkdown>
               </div>
             </div>
-          </Panel>
-
-          <PanelResizeHandle style={{ width: 6, cursor: 'col-resize' }} className="bg-warm-200 dark:bg-zinc-800 hover:bg-blue-400 dark:hover:bg-blue-500 transition-colors" />
-
-          <Panel minSize={30}>
-            <div className="h-full overflow-hidden">
-              {!selectedPath ? (
-                <div className="flex-1 h-full flex items-center justify-center text-zinc-500 text-sm">
-                  Select a file to view
-                </div>
-              ) : loading ? (
-                <div className="flex-1 h-full flex items-center justify-center text-zinc-500">
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Loading...
-                </div>
-              ) : isMarkdown && mdView === 'pretty' ? (
-                <div className="h-full overflow-y-auto p-6">
-                  <div className="prose prose-zinc dark:prose-invert prose-sm max-w-none prose-pre:bg-zinc-800 prose-pre:text-zinc-100 prose-code:text-blue-400 prose-headings:text-warm-900 dark:prose-headings:text-zinc-100">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                    >
-                      {fileContent}
-                    </ReactMarkdown>
-                  </div>
-                </div>
-              ) : (
-                <MonacoEditor
-                  height="100%"
-                  language={fileLanguage}
-                  value={fileContent}
-                  theme="vs-dark"
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: true },
-                    fontSize: 13,
-                    fontFamily: 'Geist Mono, monospace',
-                    lineNumbers: 'on',
-                    scrollBeyondLastLine: false,
-                    wordWrap: 'on',
-                    padding: { top: 12 },
-                    renderLineHighlight: 'line',
-                  }}
-                />
-              )}
-            </div>
-          </Panel>
-        </PanelGroup>
+          ) : (
+            <MonacoEditor
+              height="100%"
+              language={fileLanguage}
+              value={fileContent}
+              theme="vs-dark"
+              options={{
+                readOnly: true,
+                minimap: { enabled: true },
+                fontSize: 13,
+                fontFamily: 'Geist Mono, monospace',
+                lineNumbers: 'on',
+                scrollBeyondLastLine: false,
+                wordWrap: 'on',
+                padding: { top: 12 },
+                renderLineHighlight: 'line',
+              }}
+            />
+          )}
+        </div>
       </div>
+
+      {/* Drag overlay to prevent iframe/editor stealing mouse events */}
+      {isDragging && <div className="fixed inset-0 z-50 cursor-col-resize" />}
     </div>
   );
 }
