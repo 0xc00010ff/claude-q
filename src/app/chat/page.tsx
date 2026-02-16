@@ -26,10 +26,10 @@ export default function ChatPage() {
 
   return (
     <>
-      <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex items-center justify-between px-6 flex-shrink-0">
+      <header className="h-16 border-b border-warm-300 dark:border-zinc-800 bg-warm-50 dark:bg-zinc-950 flex items-center justify-between px-6 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <TerminalIcon className="w-5 h-5 text-zinc-400" />
-          <h1 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100 leading-tight">Chat</h1>
+          <TerminalIcon className="w-5 h-5 text-warm-500" />
+          <h1 className="text-lg font-semibold text-warm-900 dark:text-zinc-100 leading-tight">Chat</h1>
         </div>
         <ThemeToggle />
       </header>

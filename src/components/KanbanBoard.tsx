@@ -67,7 +67,7 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={`flex-1 flex flex-col min-w-[240px] rounded-lg transition-colors ${
-        isOver ? 'bg-zinc-100/50 dark:bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
+        isOver ? 'bg-warm-200/50 dark:bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
       }`}
     >
       {children}
@@ -306,7 +306,7 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="flex-1 h-full overflow-x-auto bg-zinc-50 dark:bg-zinc-950">
+    <div className="flex-1 h-full overflow-x-auto bg-warm-100 dark:bg-zinc-950">
       <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}
@@ -364,7 +364,7 @@ export function KanbanBoard({
                       </div>
                     )}
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 font-mono">
+                  <span className="px-2 py-0.5 rounded-full bg-warm-200 dark:bg-zinc-900 border border-warm-300 dark:border-zinc-800 text-xs text-warm-600 font-mono">
                     {colTasks.length}
                   </span>
                 </div>
@@ -385,15 +385,15 @@ export function KanbanBoard({
                     })}
 
                     {colTasks.length === 0 && (
-                      <div className="h-24 border-2 border-dashed border-zinc-200 dark:border-zinc-900 rounded-lg flex items-center justify-center">
-                        <span className="text-xs text-zinc-400 dark:text-zinc-700">Empty</span>
+                      <div className="h-24 border-2 border-dashed border-warm-300 dark:border-zinc-900 rounded-lg flex items-center justify-center">
+                        <span className="text-xs text-warm-500 dark:text-zinc-700">Empty</span>
                       </div>
                     )}
 
                     {column.id === 'todo' && onAddTask && (
                       <button
                         onClick={onAddTask}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-zinc-100 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 text-xs"
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-warm-200 dark:bg-zinc-800/30 border border-warm-300 dark:border-zinc-800 hover:bg-warm-300 dark:hover:bg-zinc-900 hover:border-warm-400 dark:hover:border-zinc-700 text-warm-600 hover:text-warm-700 dark:hover:text-zinc-300 text-xs"
                       >
                         <PlusIcon className="w-3.5 h-3.5" />
                         <span>Add</span>

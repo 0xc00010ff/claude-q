@@ -24,13 +24,13 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
   return (
     <div
       className={`
-        group relative bg-white dark:bg-zinc-800/30 border rounded-md overflow-hidden
+        group relative bg-warm-50 dark:bg-zinc-800/30 border rounded-md overflow-hidden
         ${isLocked && !isQueued
           ? 'border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.15)] animate-pulse-subtle'
           : isQueued
           ? 'border-zinc-500/30'
-          : 'border-zinc-200 dark:border-zinc-800'}
-        ${isDragOverlay ? 'ring-1 ring-blue-500 shadow-lg shadow-black/20 dark:shadow-black/40' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:border-zinc-300 dark:hover:border-zinc-700 cursor-pointer'}
+          : 'border-warm-300 dark:border-zinc-800'}
+        ${isDragOverlay ? 'ring-1 ring-blue-500 shadow-lg shadow-black/20 dark:shadow-black/40' : 'hover:bg-warm-100 dark:hover:bg-zinc-900 hover:border-warm-400 dark:hover:border-zinc-700 cursor-pointer'}
       `}
       onClick={() => !isDragOverlay && onClick?.(task)}
     >
@@ -41,7 +41,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
             e.stopPropagation();
             onDelete(task.id);
           }}
-          className="absolute top-2 right-2 p-1 rounded text-zinc-400 dark:text-zinc-600 hover:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          className="absolute top-2 right-2 p-1 rounded text-warm-500 dark:text-zinc-600 hover:text-red-400 hover:bg-warm-200 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100 transition-opacity z-10"
         >
           <Trash2Icon className="w-3.5 h-3.5" />
         </button>
@@ -49,7 +49,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
 
       <div className="p-3 min-h-[80px]">
         <div className="flex items-start justify-between pr-6">
-          <h4 className="text-sm text-zinc-800 dark:text-zinc-200 leading-snug font-normal">
+          <h4 className="text-sm text-warm-800 dark:text-zinc-200 leading-snug font-normal">
             {task.title}
           </h4>
         </div>
@@ -69,7 +69,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
           </div>
         )}
 
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-zinc-100 dark:border-zinc-800/50">
+        <div className="flex items-center justify-between mt-3 pt-2 border-t border-warm-200 dark:border-zinc-800/50">
           {isQueued ? (
             <div className="flex items-center gap-1.5">
               <ClockIcon className="w-3 h-3 text-zinc-400" />

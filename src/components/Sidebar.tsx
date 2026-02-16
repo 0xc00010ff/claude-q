@@ -66,7 +66,7 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
   if (counts["todo"]) {
     segments.push(
       <span key="t" className="flex items-center gap-1">
-        <span className="inline-block w-2 h-2 rounded-full bg-zinc-400 dark:bg-zinc-500 flex-shrink-0" />
+        <span className="inline-block w-2 h-2 rounded-full bg-warm-500 dark:bg-zinc-500 flex-shrink-0" />
         <span className="text-zinc-500 dark:text-zinc-400">{counts["todo"]} todo</span>
       </span>
     );
@@ -118,12 +118,12 @@ function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
           e.stopPropagation();
           setOpen(!open);
         }}
-        className="p-1 rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="p-1 rounded hover:bg-warm-300 dark:hover:bg-zinc-700 text-warm-500 hover:text-warm-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <MoreHorizontalIcon className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-36 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
+        <div className="absolute right-0 top-full mt-1 w-36 bg-warm-50 dark:bg-zinc-800 border border-warm-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -131,7 +131,7 @@ function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
               setOpen(false);
               onDelete(project);
             }}
-            className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-zinc-100 dark:hover:bg-zinc-700 flex items-center gap-2"
+            className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-warm-200 dark:hover:bg-zinc-700 flex items-center gap-2"
           >
             <Trash2Icon className="w-3.5 h-3.5" />
             Delete
@@ -181,8 +181,8 @@ function SortableProject({
       <Link
         href={`/projects/${project.id}`}
         className={`w-full text-left p-3 px-4 relative group block
-          ${isActive ? "bg-zinc-200 dark:bg-zinc-800" : "hover:bg-zinc-200/60 dark:hover:bg-zinc-800/40"}
-          ${index > 0 ? "border-t border-zinc-200/60 dark:border-zinc-800/60" : ""}
+          ${isActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}
+          ${index > 0 ? "border-t border-warm-300/60 dark:border-zinc-800/60" : ""}
           py-4`}
       >
         {isActive && (
@@ -194,7 +194,7 @@ function SortableProject({
           <button
             ref={setActivatorNodeRef}
             {...listeners}
-            className="p-0.5 -ml-1 cursor-grab active:cursor-grabbing text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+            className="p-0.5 -ml-1 cursor-grab active:cursor-grabbing text-warm-400 dark:text-zinc-600 hover:text-warm-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
             onClick={(e) => e.preventDefault()}
           >
             <GripVerticalIcon className="w-3.5 h-3.5" />
@@ -202,7 +202,7 @@ function SortableProject({
 
           <div className="flex-1 min-w-0">
             <div
-              className={`text-sm font-medium leading-tight truncate ${isActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
+              className={`text-sm font-medium leading-tight truncate ${isActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
             >
               {folderName(project)}
             </div>
@@ -277,11 +277,11 @@ export function Sidebar({ onAddProject }: SidebarProps) {
   );
 
   return (
-    <aside className="w-[260px] h-full bg-zinc-100/50 dark:bg-zinc-800/30 border-r border-zinc-200 dark:border-zinc-800 flex flex-col flex-shrink-0">
+    <aside className="w-[260px] h-full bg-warm-200/50 dark:bg-zinc-800/30 border-r border-warm-300 dark:border-zinc-800 flex flex-col flex-shrink-0">
       {/* Header */}
-      <div className="h-16 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
+      <div className="h-16 flex items-center px-4 border-b border-warm-300/50 dark:border-zinc-800/50">
         <LayoutGridIcon className="w-5 h-5 text-zinc-400 mr-3" />
-        <span className="text-sm font-bold tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">
+        <span className="text-sm font-bold tracking-wide text-warm-900 dark:text-zinc-100 uppercase">
           Agent Q
         </span>
       </div>
@@ -289,8 +289,8 @@ export function Sidebar({ onAddProject }: SidebarProps) {
       {/* Main Chat Item */}
       <Link
         href="/chat"
-        className={`w-full text-left p-3 px-4 relative group py-4 border-b border-zinc-200/60 dark:border-zinc-800/60 block
-          ${isChatActive ? "bg-zinc-200 dark:bg-zinc-800" : "hover:bg-zinc-200/60 dark:hover:bg-zinc-800/40"}`}
+        className={`w-full text-left p-3 px-4 relative group py-4 border-b border-warm-300/60 dark:border-zinc-800/60 block
+          ${isChatActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}`}
       >
         {isChatActive && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500" />
@@ -300,7 +300,7 @@ export function Sidebar({ onAddProject }: SidebarProps) {
             className={`w-4 h-4 ${isChatActive ? "text-blue-400" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
           />
           <span
-            className={`text-sm font-medium ${isChatActive ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-zinc-100"}`}
+            className={`text-sm font-medium ${isChatActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
           >
             Big Claude
           </span>
@@ -340,10 +340,10 @@ export function Sidebar({ onAddProject }: SidebarProps) {
       </div>
 
       {/* Footer */}
-      <div className="h-14 flex items-center px-3 border-t border-zinc-200 dark:border-zinc-800 shrink-0">
+      <div className="h-14 flex items-center px-3 border-t border-warm-300 dark:border-zinc-800 shrink-0">
         <button
           onClick={onAddProject}
-          className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-md border border-zinc-300 dark:border-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 text-sm"
+          className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-md border border-warm-400 dark:border-zinc-700 hover:bg-warm-300 dark:hover:bg-zinc-800 hover:border-warm-500 dark:hover:border-zinc-600 text-warm-600 dark:text-zinc-400 hover:text-warm-700 dark:hover:text-zinc-200 text-sm"
         >
           <PlusIcon className="w-4 h-4" />
           <span>Add Project</span>

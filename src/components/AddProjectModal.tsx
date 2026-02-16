@@ -37,11 +37,11 @@ export function AddProjectModal({ open, onClose, onCreated }: AddProjectModalPro
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60" onClick={onClose}>
       <div
-        className="bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg w-full max-w-md shadow-2xl"
+        className="bg-warm-50 dark:bg-zinc-900 border border-warm-400 dark:border-zinc-700 rounded-lg w-full max-w-md shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200 dark:border-zinc-800">
-          <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Add Project</h2>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-warm-300 dark:border-zinc-800">
+          <h2 className="text-sm font-semibold text-warm-900 dark:text-zinc-100">Add Project</h2>
           <button onClick={onClose} className="text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
             <XIcon className="w-4 h-4" />
           </button>
@@ -55,7 +55,7 @@ export function AddProjectModal({ open, onClose, onCreated }: AddProjectModalPro
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="My Project"
-              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full bg-warm-100 dark:bg-zinc-800 border border-warm-400 dark:border-zinc-700 rounded-md px-3 py-2 text-sm text-warm-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
@@ -64,7 +64,7 @@ export function AddProjectModal({ open, onClose, onCreated }: AddProjectModalPro
               value={path}
               onChange={(e) => setPath(e.target.value)}
               placeholder="/Users/you/projects/my-project"
-              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 font-mono placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full bg-warm-100 dark:bg-zinc-800 border border-warm-400 dark:border-zinc-700 rounded-md px-3 py-2 text-sm text-warm-900 dark:text-zinc-100 font-mono placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div>
@@ -73,14 +73,14 @@ export function AddProjectModal({ open, onClose, onCreated }: AddProjectModalPro
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               placeholder="http://localhost:3001"
-              className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 font-mono placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full bg-warm-100 dark:bg-zinc-800 border border-warm-400 dark:border-zinc-700 rounded-md px-3 py-2 text-sm text-warm-900 dark:text-zinc-100 font-mono placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="px-4 py-2 text-sm text-warm-600 dark:text-zinc-400 hover:text-warm-800 dark:hover:text-zinc-200 rounded-md hover:bg-warm-200 dark:hover:bg-zinc-800"
             >
               Cancel
             </button>

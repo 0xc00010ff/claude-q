@@ -24,14 +24,14 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   if (!isLoaded) {
     return (
-      <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 items-center justify-center">
+      <div className="flex h-screen w-full bg-warm-100 dark:bg-zinc-950 text-warm-900 dark:text-zinc-100 items-center justify-center">
         <div className="text-zinc-500 text-sm">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen w-full bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 overflow-hidden font-sans">
+    <div className="flex h-screen w-full bg-warm-100 dark:bg-zinc-950 text-warm-900 dark:text-zinc-100 overflow-hidden font-sans">
       <Sidebar onAddProject={handleAddProject} />
       <div className="flex-1 flex flex-col min-w-0">
         {children}

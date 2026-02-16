@@ -10,6 +10,18 @@ const config: Config = {
   theme: {
   	extend: {
   		colors: {
+  			warm: {
+  				50: '#faf7f1',
+  				100: '#f5f0e6',
+  				200: '#ede7db',
+  				300: '#e2dbd0',
+  				400: '#d4cbbf',
+  				500: '#a89d90',
+  				600: '#7a7068',
+  				700: '#5c534b',
+  				800: '#3a342e',
+  				900: '#2a2520',
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
