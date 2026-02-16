@@ -315,7 +315,7 @@ export function KanbanBoard({
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex h-full min-w-[1000px] p-6 space-x-4">
+        <div className="flex h-full min-w-[1000px] px-6 pt-6 space-x-4">
           {COLUMNS.map((column) => {
             const colTasks = columnTasks[column.id].sort(
               (a, b) => (a.order ?? 0) - (b.order ?? 0)
