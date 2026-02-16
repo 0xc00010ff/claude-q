@@ -1,4 +1,5 @@
 import { execSync } from "child_process";
+import { existsSync } from "fs";
 import { getAllProjects, getAllTasks, getExecutionMode } from "./db";
 import type { TaskMode } from "./types";
 
@@ -23,6 +24,12 @@ export async function dispatchTask(
 
   // Resolve ~ in path
   const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
+
+  if (!existsSync(projectPath)) {
+    console.error(`[agent-dispatch] project path does not exist: ${projectPath}`);
+    return undefined;
+  }
+
   const shortId = taskId.slice(0, 8);
   const terminalTabId = `task-${shortId}`;
   const tmuxSession = `mc-${shortId}`;

@@ -1,13 +1,16 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ProjectsProvider } from './ProjectsProvider';
 import { TerminalTabsProvider } from './TerminalTabsProvider';
 import { Sidebar } from './Sidebar';
+import { MissingPathModal } from './MissingPathModal';
 import { useProjects } from './ProjectsProvider';
+import type { Project } from '@/lib/types';
 
 function ShellInner({ children }: { children: React.ReactNode }) {
   const { refreshProjects, isLoaded } = useProjects();
+  const [missingProject, setMissingProject] = useState<Project | null>(null);
 
   const handleAddProject = useCallback(async () => {
     const res = await fetch('/api/folder-picker', { method: 'POST' });
@@ -22,6 +25,22 @@ function ShellInner({ children }: { children: React.ReactNode }) {
     await refreshProjects();
   }, [refreshProjects]);
 
+  const handleRelocate = useCallback(async (project: Project, newPath: string) => {
+    await fetch(`/api/projects/${project.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: newPath }),
+    });
+    setMissingProject(null);
+    await refreshProjects();
+  }, [refreshProjects]);
+
+  const handleRemoveProject = useCallback(async (project: Project) => {
+    await fetch(`/api/projects/${project.id}`, { method: 'DELETE' });
+    setMissingProject(null);
+    await refreshProjects();
+  }, [refreshProjects]);
+
   if (!isLoaded) {
     return (
       <div className="flex h-screen w-full bg-warm-100 dark:bg-zinc-950 text-warm-900 dark:text-zinc-100 items-center justify-center">
@@ -32,10 +51,21 @@ function ShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-full bg-warm-100 dark:bg-zinc-950 text-warm-900 dark:text-zinc-100 overflow-hidden font-sans">
-      <Sidebar onAddProject={handleAddProject} />
+      <Sidebar
+        onAddProject={handleAddProject}
+        onMissingPath={setMissingProject}
+      />
       <div className="flex-1 flex flex-col min-w-0">
         {children}
       </div>
+      {missingProject && (
+        <MissingPathModal
+          project={missingProject}
+          onClose={() => setMissingProject(null)}
+          onRelocate={handleRelocate}
+          onRemove={handleRemoveProject}
+        />
+      )}
     </div>
   );
 }

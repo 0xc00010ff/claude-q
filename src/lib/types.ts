@@ -8,6 +8,7 @@ export interface Project {
   status?: ProjectStatus;
   serverUrl?: string;
   order?: number;
+  pathValid?: boolean;
   createdAt: string;
 }
 

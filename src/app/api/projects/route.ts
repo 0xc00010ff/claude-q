@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
+import { existsSync } from "fs";
 import { getAllProjects, createProject } from "@/lib/db";
+
+function resolvePath(p: string): string {
+  return p.replace(/^~/, process.env.HOME || "~");
+}
 
 export async function GET() {
   const projects = await getAllProjects();
-  return NextResponse.json(projects);
+  const enriched = projects.map((p) => ({
+    ...p,
+    pathValid: existsSync(resolvePath(p.path)),
+  }));
+  return NextResponse.json(enriched);
 }
 
 export async function POST(request: Request) {
@@ -18,5 +27,8 @@ export async function POST(request: Request) {
   }
 
   const project = await createProject({ name, path, serverUrl });
-  return NextResponse.json(project, { status: 201 });
+  return NextResponse.json(
+    { ...project, pathValid: existsSync(resolvePath(path)) },
+    { status: 201 }
+  );
 }

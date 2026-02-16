@@ -28,6 +28,7 @@ import {
   MoreHorizontalIcon,
   GripVerticalIcon,
   Trash2Icon,
+  AlertTriangleIcon,
 } from "lucide-react";
 import type { Project, Task, TaskStatus } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
@@ -39,6 +40,7 @@ function folderName(project: Project): string {
 
 interface SidebarProps {
   onAddProject: () => void;
+  onMissingPath?: (project: Project) => void;
 }
 
 function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
@@ -142,6 +144,7 @@ interface SortableProjectProps {
   isActive: boolean;
   tasks: Task[];
   onDelete: (project: Project) => void;
+  onMissingPath?: (project: Project) => void;
 }
 
 function SortableProject({
@@ -150,7 +153,9 @@ function SortableProject({
   isActive,
   tasks,
   onDelete,
+  onMissingPath,
 }: SortableProjectProps) {
+  const pathInvalid = project.pathValid === false;
   const {
     attributes,
     listeners,
@@ -172,6 +177,7 @@ function SortableProject({
     <div ref={setNodeRef} style={style} {...attributes}>
       <Link
         href={`/projects/${project.id}`}
+        onClick={pathInvalid ? (e) => { e.preventDefault(); onMissingPath?.(project); } : undefined}
         className={`w-full text-left p-3 px-4 relative group block
           ${isActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}
           ${index > 0 ? "border-t border-warm-300/60 dark:border-zinc-800/60" : ""}
@@ -179,6 +185,9 @@ function SortableProject({
       >
         {isActive && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500" />
+        )}
+        {pathInvalid && (
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-red-500" />
         )}
 
         {/* Top row: drag handle + name + menu */}
@@ -194,11 +203,21 @@ function SortableProject({
 
           <div className="flex-1 min-w-0">
             <div
-              className={`text-sm font-medium leading-tight truncate ${isActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
+              className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-red-500 dark:text-red-400" : isActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
             >
               {folderName(project)}
             </div>
           </div>
+
+          {pathInvalid && (
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); onMissingPath?.(project); }}
+              className="p-1 text-red-400 hover:text-red-300 transition-colors"
+              title="Project folder not found"
+            >
+              <AlertTriangleIcon className="w-4 h-4" />
+            </button>
+          )}
 
           <ProjectMenu
             project={project}
@@ -207,13 +226,17 @@ function SortableProject({
         </div>
 
         {/* Path */}
-        <div className="text-[11px] font-mono text-zinc-400 dark:text-zinc-600 mt-1 truncate pl-4">
+        <div className={`text-[11px] font-mono mt-1 truncate pl-4 ${pathInvalid ? "text-red-400/60 dark:text-red-500/50" : "text-zinc-400 dark:text-zinc-600"}`}>
           {project.path}
         </div>
 
         {/* Task Summary */}
         <div className="mt-2.5 text-[11px] pl-4">
-          <TaskStatusSummary tasks={tasks} />
+          {pathInvalid ? (
+            <span className="text-red-400 dark:text-red-500 text-[11px]">Folder not found</span>
+          ) : (
+            <TaskStatusSummary tasks={tasks} />
+          )}
         </div>
       </Link>
     </div>
@@ -222,7 +245,7 @@ function SortableProject({
 
 // ── Sidebar ──────────────────────────────────────────────
 
-export function Sidebar({ onAddProject }: SidebarProps) {
+export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { projects, tasksByProject, refreshProjects } = useProjects();
@@ -324,6 +347,7 @@ export function Sidebar({ onAddProject }: SidebarProps) {
                   isActive={isActive}
                   tasks={tasks}
                   onDelete={handleDelete}
+                  onMissingPath={onMissingPath}
                 />
               );
             })}
