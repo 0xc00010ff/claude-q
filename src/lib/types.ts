@@ -26,12 +26,15 @@ export interface TaskAttachment {
   dataUrl?: string;
 }
 
+export type TaskMode = 'code' | 'plan' | 'answer';
+
 export interface Task {
   id: string;
   title: string;
   description: string;
   status: TaskStatus;
   priority?: 'low' | 'medium' | 'high';
+  mode?: TaskMode;
   order?: number;
   findings?: string;
   humanSteps?: string;

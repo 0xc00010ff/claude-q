@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { XIcon, PaperclipIcon, FileIcon } from 'lucide-react';
-import type { Task, TaskAttachment } from '@/lib/types';
+import type { Task, TaskAttachment, TaskMode } from '@/lib/types';
 
 interface TaskModalProps {
   task: Task;
@@ -20,6 +20,7 @@ function formatSize(bytes: number): string {
 export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description);
+  const [mode, setMode] = useState<TaskMode | undefined>(task.mode);
   const [attachments, setAttachments] = useState<TaskAttachment[]>(
     task.attachments || [],
   );
@@ -31,6 +32,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   useEffect(() => {
     setTitle(task.title);
     setDescription(task.description);
+    setMode(task.mode);
     setAttachments(task.attachments || []);
   }, [task]);
 
@@ -41,13 +43,14 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
   }, [isOpen]);
 
   const autosave = useCallback(
-    (newTitle: string, newDesc: string, newAttachments: TaskAttachment[]) => {
+    (newTitle: string, newDesc: string, newAttachments: TaskAttachment[], newMode?: TaskMode) => {
       if (saveTimeout.current) clearTimeout(saveTimeout.current);
       saveTimeout.current = setTimeout(() => {
         onSave(task.id, {
           title: newTitle,
           description: newDesc,
           attachments: newAttachments,
+          mode: newMode,
         });
       }, 400);
     },
@@ -60,6 +63,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
       title,
       description,
       attachments,
+      mode,
     });
     onClose();
   }, [task.id, title, description, attachments, onSave, onClose]);
@@ -88,12 +92,18 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
 
   const handleTitleChange = (val: string) => {
     setTitle(val);
-    autosave(val, description, attachments);
+    autosave(val, description, attachments, mode);
   };
 
   const handleDescriptionChange = (val: string) => {
     setDescription(val);
-    autosave(title, val, attachments);
+    autosave(title, val, attachments, mode);
+  };
+
+  const handleModeChange = (newMode: TaskMode) => {
+    const val = newMode === mode ? undefined : newMode;
+    setMode(val);
+    autosave(title, description, attachments, val);
   };
 
   const addFiles = (files: FileList | File[]) => {
@@ -110,7 +120,7 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
           att.dataUrl = e.target?.result as string;
           setAttachments((prev) => {
             const updated = [...prev, att];
-            autosave(title, description, updated);
+            autosave(title, description, updated, mode);
             return updated;
           });
         };
@@ -171,6 +181,27 @@ export function TaskModal({ task, isOpen, onClose, onSave }: TaskModalProps) {
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 pt-5">
+          {/* Mode selector */}
+          <div className="flex gap-1.5 mb-3">
+            {([
+              ['code', 'Code'],
+              ['plan', 'Plan'],
+              ['answer', 'Answer'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                onClick={() => handleModeChange(value)}
+                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                  mode === value
+                    ? 'bg-zinc-600 text-zinc-100'
+                    : 'border border-zinc-700 text-zinc-500 hover:text-zinc-400 hover:border-zinc-600'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
           <input
             ref={titleRef}
             type="text"
