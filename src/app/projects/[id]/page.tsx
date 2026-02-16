@@ -20,6 +20,13 @@ export default function ProjectPage() {
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
+  const [terminalCollapsed, setTerminalCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('mc-terminal-collapsed');
+      return stored !== null ? stored === 'true' : true;
+    }
+    return true;
+  });
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,6 +101,14 @@ export default function ProjectPage() {
     refresh();
   };
 
+  const toggleTerminalCollapsed = useCallback(() => {
+    setTerminalCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('mc-terminal-collapsed', String(next));
+      return next;
+    });
+  }, []);
+
   // Resize handle
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -135,7 +150,7 @@ export default function ProjectPage() {
           <>
             <div
               className="flex-1 min-h-0 overflow-hidden"
-              style={{ flexBasis: `${100 - chatPercent}%` }}
+              style={terminalCollapsed ? undefined : { flexBasis: `${100 - chatPercent}%` }}
             >
               <KanbanBoard
                 tasks={tasks}
@@ -153,17 +168,21 @@ export default function ProjectPage() {
               />
             </div>
 
-            <div
-              onMouseDown={handleMouseDown}
-              className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-row-resize relative z-10 ${
-                isDragging ? 'border-zinc-400 dark:border-zinc-600' : ''
-              }`}
-              style={{ margin: '-2px 0', padding: '2px 0' }}
-            />
+            {!terminalCollapsed && (
+              <div
+                onMouseDown={handleMouseDown}
+                className={`w-full h-0 border-t border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 cursor-row-resize relative z-10 ${
+                  isDragging ? 'border-zinc-400 dark:border-zinc-600' : ''
+                }`}
+                style={{ margin: '-2px 0', padding: '2px 0' }}
+              />
+            )}
 
             <TerminalPanel
               projectId={projectId}
               style={{ flexBasis: `${chatPercent}%` }}
+              collapsed={terminalCollapsed}
+              onToggleCollapsed={toggleTerminalCollapsed}
             />
           </>
         )}

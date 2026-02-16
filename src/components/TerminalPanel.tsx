@@ -5,7 +5,7 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
-import { Plus, X, TerminalIcon } from 'lucide-react';
+import { Plus, X, TerminalIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { useTerminalTabs, type TerminalTab } from './TerminalTabsProvider';
 import { TerminalPane } from './TerminalPane';
@@ -13,13 +13,15 @@ import { TerminalPane } from './TerminalPane';
 interface TerminalPanelProps {
   projectId: string;
   style?: React.CSSProperties;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Panel component                                                            */
 /* -------------------------------------------------------------------------- */
 
-export default function TerminalPanel({ projectId, style }: TerminalPanelProps) {
+export default function TerminalPanel({ projectId, style, collapsed, onToggleCollapsed }: TerminalPanelProps) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab } = useTerminalTabs();
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +67,7 @@ export default function TerminalPanel({ projectId, style }: TerminalPanelProps) 
     <div
       ref={panelRef}
       className="w-full flex flex-col bg-zinc-100 dark:bg-black/40 flex-shrink-0 font-mono"
-      style={{ minHeight: 0, ...style }}
+      style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar */}
       <div className="h-10 flex items-center border-b border-zinc-200/60 dark:border-zinc-800/60 bg-zinc-200/20 dark:bg-zinc-900/20 px-1 overflow-x-auto">
@@ -103,14 +105,26 @@ export default function TerminalPanel({ projectId, style }: TerminalPanelProps) 
         >
           <Plus className="w-3.5 h-3.5" />
         </button>
+
+        {/* Spacer + Collapse toggle */}
+        <div className="flex-1" />
+        <button
+          onClick={onToggleCollapsed}
+          className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-zinc-200/30 dark:hover:bg-zinc-800/30 rounded-md mr-1 shrink-0"
+          title={collapsed ? 'Expand terminal' : 'Collapse terminal'}
+        >
+          {collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
       </div>
 
       {/* Terminal Panes — each manages its own xterm lifecycle */}
-      <div className="flex-1 relative" style={{ minHeight: 0 }}>
-        {tabs.map((tab) => (
-          <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} />
-        ))}
-      </div>
+      {!collapsed && (
+        <div className="flex-1 relative" style={{ minHeight: 0 }}>
+          {tabs.map((tab) => (
+            <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
