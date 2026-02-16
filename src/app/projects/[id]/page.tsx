@@ -198,7 +198,11 @@ export default function ProjectPage() {
           task={agentModalTask}
           onClose={() => setAgentModalTask(null)}
           onComplete={async (taskId) => {
-            await updateTask(taskId, { status: 'done' });
+            const doneTasks = tasks.filter(t => t.status === 'done');
+            const minOrder = doneTasks.length > 0
+              ? Math.min(...doneTasks.map(t => t.order ?? 0))
+              : 0;
+            await updateTask(taskId, { status: 'done', order: minOrder - 1 });
             setAgentModalTask(null);
           }}
         />
