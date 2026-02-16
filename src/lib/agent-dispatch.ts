@@ -1,5 +1,6 @@
 import { execSync } from "child_process";
 import { getAllProjects } from "./db";
+import type { TaskMode } from "./types";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
 const MC_API = "http://localhost:7331";
@@ -10,6 +11,7 @@ export async function dispatchTask(
   taskId: string,
   taskTitle: string,
   taskDescription: string,
+  mode?: TaskMode,
 ): Promise<string | undefined> {
   // Look up project path
   const projects = await getAllProjects();
@@ -26,22 +28,50 @@ export async function dispatchTask(
   const tmuxSession = `mc-${shortId}`;
 
   // Build the agent prompt
-  const prompt = `# ${taskTitle}
+  const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
+  -H 'Content-Type: application/json' \\
+  -d '{"status":"verify","locked":false,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
+
+  let prompt: string;
+  let claudeFlags: string;
+
+  if (mode === 'plan') {
+    prompt = `# ${taskTitle}
+
+${taskDescription}
+
+IMPORTANT: You are in PLAN MODE. Research and create a detailed implementation plan, but do NOT write or modify any code. Output your plan as findings.
+
+When completely finished, signal complete:
+${callbackCurl}`;
+    claudeFlags = '--dangerously-skip-permissions --plan';
+  } else if (mode === 'answer') {
+    prompt = `# ${taskTitle}
+
+${taskDescription}
+
+IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and answer the question. Provide your answer as findings.
+
+When completely finished, signal complete:
+${callbackCurl}`;
+    claudeFlags = '--dangerously-skip-permissions';
+  } else {
+    prompt = `# ${taskTitle}
 
 ${taskDescription}
 
 When completely finished, commit and signal complete:
 1. If code was changed, stage and commit the changes with a descriptive message.
 2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
-curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
-  -H 'Content-Type: application/json' \\
-  -d '{"status":"verify","locked":false,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
+${callbackCurl}`;
+    claudeFlags = '--dangerously-skip-permissions';
+  }
 
   // Escape for shell
   const escapedPrompt = prompt.replace(/'/g, "'\\''");
 
   // Launch via tmux — session survives server restarts
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' env -u CLAUDECODE ${CLAUDE} --dangerously-skip-permissions '${escapedPrompt}'`;
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' env -u CLAUDECODE ${CLAUDE} ${claudeFlags} '${escapedPrompt}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });

@@ -25,7 +25,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (body.status === "in-progress" && prevTask.status !== "in-progress") {
       await updateTask(params.id, params.taskId, { locked: true });
       updated.locked = true;
-      terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description);
+      terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description, updated.mode);
     } else if (prevTask.status === "in-progress" && body.status === "todo") {
       await updateTask(params.id, params.taskId, { locked: false });
       updated.locked = false;
