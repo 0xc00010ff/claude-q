@@ -36,8 +36,9 @@ export async function dispatchTask(
   let prompt: string;
   let claudeFlags: string;
 
-  if (mode === 'plan') {
-    prompt = `/plan the following feature, then signal back the plan with the instructions further below
+  if (mode === "plan") {
+    prompt = `\
+IMPORTANT: Do NOT make any code changes. Do NOT create, edit, or delete any files. Do NOT commit anything. Only research and write the plan. Provide your answer as findings.
 
 # ${taskTitle}
 
@@ -49,8 +50,8 @@ When completely finished, commit and signal complete:
 ${callbackCurl}
 3. After signaling, change to the main project directory for any follow-up work:
 cd ${projectPath}`;
-    claudeFlags = '--dangerously-skip-permissions';
-  } else if (mode === 'answer') {
+    claudeFlags = "--dangerously-skip-permissions";
+  } else if (mode === "answer") {
     prompt = `# ${taskTitle}
 
 ${taskDescription}
@@ -62,7 +63,7 @@ ${callbackCurl}
 
 After signaling, change to the main project directory for any follow-up work:
 cd ${projectPath}`;
-    claudeFlags = '--dangerously-skip-permissions';
+    claudeFlags = "--dangerously-skip-permissions";
   } else {
     prompt = `# ${taskTitle}
 
@@ -74,14 +75,16 @@ When completely finished, commit and signal complete:
 ${callbackCurl}
 3. After signaling, change to the main project directory for any follow-up work:
 cd ${projectPath}`;
-    claudeFlags = '--dangerously-skip-permissions';
+    claudeFlags = "--dangerously-skip-permissions";
   }
 
   // Escape for shell
   const escapedPrompt = prompt.replace(/'/g, "'\\''");
 
   // Create isolated worktree for this agent (falls back to projectPath if not a git repo or on failure)
-  const worktree = isGitRepo(projectPath) ? createWorktree(projectPath, shortId) : null;
+  const worktree = isGitRepo(projectPath)
+    ? createWorktree(projectPath, shortId)
+    : null;
   const workingDir = worktree ?? projectPath;
 
   // Launch via tmux — session survives server restarts
@@ -150,26 +153,36 @@ export function isTaskDispatched(taskId: string): boolean {
 
 export async function shouldDispatch(projectId: string): Promise<boolean> {
   const mode = await getExecutionMode(projectId);
-  if (mode === 'parallel') return true;
+  if (mode === "parallel") return true;
 
   // Sequential: check if any task is already actively dispatched
   const tasks = await getAllTasks(projectId);
-  const inProgressTasks = tasks.filter(t => t.status === 'in-progress' && t.locked);
-  return !inProgressTasks.some(t => isTaskDispatched(t.id));
+  const inProgressTasks = tasks.filter(
+    (t) => t.status === "in-progress" && t.locked,
+  );
+  return !inProgressTasks.some((t) => isTaskDispatched(t.id));
 }
 
 export async function dispatchNextQueued(projectId: string): Promise<void> {
   const mode = await getExecutionMode(projectId);
-  if (mode !== 'sequential') return;
+  if (mode !== "sequential") return;
 
   const tasks = await getAllTasks(projectId);
   const queued = tasks
-    .filter(t => t.status === 'in-progress' && t.locked && !isTaskDispatched(t.id))
+    .filter(
+      (t) => t.status === "in-progress" && t.locked && !isTaskDispatched(t.id),
+    )
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   if (queued.length === 0) return;
 
   const next = queued[0];
   console.log(`[agent-dispatch] auto-dispatching next queued task: ${next.id}`);
-  await dispatchTask(projectId, next.id, next.title, next.description, next.mode);
+  await dispatchTask(
+    projectId,
+    next.id,
+    next.title,
+    next.description,
+    next.mode,
+  );
 }
