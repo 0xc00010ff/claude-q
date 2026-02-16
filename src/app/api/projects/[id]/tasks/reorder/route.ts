@@ -43,9 +43,12 @@ export async function PUT(request: Request, { params }: Params) {
       if (terminalTabId) {
         dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
       }
-    } else if (prevStatus === "in-progress" && newStatus === "todo") {
-      await updateTask(params.id, item.id, { locked: false });
-      abortTask(params.id, item.id);
+    } else if (newStatus === "todo" && prevStatus !== "todo") {
+      // Reset session data when moved back to todo from any status
+      await updateTask(params.id, item.id, { locked: false, findings: "", humanSteps: "", agentLog: "" });
+      if (prevStatus === "in-progress") {
+        abortTask(params.id, item.id);
+      }
     }
   }
 

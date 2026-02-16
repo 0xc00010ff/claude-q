@@ -26,10 +26,14 @@ export async function PATCH(request: Request, { params }: Params) {
       await updateTask(params.id, params.taskId, { locked: true });
       updated.locked = true;
       terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description, updated.mode);
-    } else if (prevTask.status === "in-progress" && body.status === "todo") {
-      await updateTask(params.id, params.taskId, { locked: false });
-      updated.locked = false;
-      abortTask(params.id, params.taskId);
+    } else if (body.status === "todo" && prevTask.status !== "todo") {
+      // Reset session data when moved back to todo from any status
+      const resetFields = { locked: false, findings: "", humanSteps: "", agentLog: "" };
+      await updateTask(params.id, params.taskId, resetFields);
+      Object.assign(updated, resetFields);
+      if (prevTask.status === "in-progress") {
+        abortTask(params.id, params.taskId);
+      }
     } else if (prevTask.status === "in-progress" && body.status === "verify") {
       // Agent completed — notify Slack
       try {
