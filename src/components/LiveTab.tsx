@@ -1,14 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GlobeIcon, MonitorIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
+import { useProjects } from '@/components/ProjectsProvider';
 
 interface LiveTabProps {
   project: Project;
 }
 
 export function LiveTab({ project }: LiveTabProps) {
+  const [urlInput, setUrlInput] = useState('');
+  const [barValue, setBarValue] = useState(project.serverUrl ?? '');
+  const { refreshProjects } = useProjects();
+
+  const handleConnect = async () => {
+    const url = urlInput.trim();
+    if (!url) return;
+    await fetch(`/api/projects/${project.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ serverUrl: url }),
+    });
+    await refreshProjects();
+  };
+
   if (!project.serverUrl) {
     return (
       <div className="flex-1 h-full flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-950 text-zinc-500 dark:text-zinc-400 p-8">
@@ -26,9 +42,15 @@ export function LiveTab({ project }: LiveTabProps) {
           <input
             type="text"
             placeholder="http://localhost:3000"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleConnect()}
             className="flex-1 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
           />
-          <button className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200">
+          <button
+            onClick={handleConnect}
+            className="bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 rounded-md text-sm font-medium hover:bg-zinc-800 dark:hover:bg-zinc-200"
+          >
             Connect
           </button>
         </div>
@@ -45,25 +67,33 @@ export function LiveTab({ project }: LiveTabProps) {
           <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/50" />
         </div>
         <div className="flex-1 flex justify-center">
-          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded px-3 py-1 text-xs text-zinc-500 dark:text-zinc-400 flex items-center space-x-2 min-w-[300px] justify-center">
-            <GlobeIcon className="w-3 h-3" />
-            <span>{project.serverUrl}</span>
+          <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded px-3 py-1 text-xs text-zinc-500 dark:text-zinc-400 flex items-center space-x-2 min-w-[300px]">
+            <GlobeIcon className="w-3 h-3 shrink-0" />
+            <input
+              type="text"
+              value={barValue}
+              onChange={(e) => setBarValue(e.target.value)}
+              onKeyDown={async (e) => {
+                if (e.key === 'Enter') {
+                  const url = barValue.trim();
+                  if (!url || url === project.serverUrl) return;
+                  await fetch(`/api/projects/${project.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serverUrl: url }),
+                  });
+                  await refreshProjects();
+                }
+              }}
+              className="flex-1 bg-transparent text-xs text-zinc-500 dark:text-zinc-400 focus:text-zinc-800 dark:focus:text-zinc-200 outline-none"
+            />
           </div>
         </div>
-        <div className="w-16" />
       </div>
-      <div className="flex-1 bg-white flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-zinc-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-pulse w-32 h-32 bg-zinc-200 rounded-full mx-auto mb-4" />
-            <div className="h-4 w-48 bg-zinc-200 rounded mx-auto mb-2" />
-            <div className="h-4 w-32 bg-zinc-200 rounded mx-auto" />
-            <p className="mt-8 text-zinc-400 text-sm font-mono">
-              Preview Mode: {project.serverUrl}
-            </p>
-          </div>
-        </div>
-      </div>
+      <iframe
+        src={project.serverUrl}
+        className="flex-1 w-full border-0"
+      />
     </div>
   );
 }

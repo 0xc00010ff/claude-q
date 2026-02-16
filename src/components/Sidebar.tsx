@@ -58,7 +58,7 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
   if (counts["verify"]) {
     segments.push(
       <span key="v" className="flex items-center gap-1">
-        <CheckCircle2Icon className="w-3 h-3 text-yellow-400" />
+        <CheckCircle2Icon className="w-2.5 h-2.5 text-yellow-400" />
         <span className="text-zinc-500 dark:text-zinc-400">{counts["verify"]} to verify</span>
       </span>
     );
@@ -282,7 +282,7 @@ export function Sidebar({ onAddProject }: SidebarProps) {
       <div className="h-16 flex items-center px-4 border-b border-zinc-200/50 dark:border-zinc-800/50">
         <LayoutGridIcon className="w-5 h-5 text-zinc-400 mr-3" />
         <span className="text-sm font-bold tracking-wide text-zinc-900 dark:text-zinc-100 uppercase">
-          Claude Queued
+          Agent Q
         </span>
       </div>
 
