@@ -303,14 +303,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                   await onMoveToInProgress(task.id, { title, description, attachments, mode });
                 }}
                 disabled={!title.trim() || dispatching}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 border border-blue-500/50 rounded-md hover:bg-blue-500/10 hover:border-blue-400 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-400 border border-blue-500/50 rounded-md transition-colors ${dispatching ? 'pointer-events-none' : 'hover:bg-blue-500/10 hover:border-blue-400 disabled:opacity-30 disabled:pointer-events-none'}`}
               >
                 {dispatching ? (
                   <Loader2Icon className="w-3 h-3 animate-spin" />
                 ) : (
                   <PlayIcon className="w-3 h-3" />
                 )}
-                {dispatching ? 'Starting...' : 'Move to In Progress'}
+                {dispatching ? 'Moving to In Progress...' : 'Move to In Progress'}
               </button>
             )}
           </div>
