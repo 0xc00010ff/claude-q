@@ -117,6 +117,7 @@ export function KanbanBoard({
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const [localTasks, setLocalTasks] = useState<Task[] | null>(null);
   const pendingCommitRef = useRef<Task[] | null>(null);
+  const [pendingRerun, setPendingRerun] = useState<{ finalTasks: Task[]; taskTitle: string } | null>(null);
 
   // Clear localTasks once the parent props reflect the committed drag result
   useEffect(() => {
@@ -243,6 +244,19 @@ export function KanbanBoard({
       return t;
     });
 
+    // Check if a task is being rerun (verify/done → in-progress)
+    const rerunTask = finalTasks.find((t) => {
+      const original = tasks.find((ot) => ot.id === t.id);
+      return original && (original.status === 'verify' || original.status === 'done') && t.status === 'in-progress';
+    });
+
+    if (rerunTask) {
+      // Snap card back visually and show confirmation dialog
+      setLocalTasks(null);
+      setPendingRerun({ finalTasks, taskTitle: rerunTask.title });
+      return;
+    }
+
     // Check if any task moved into in-progress
     const movedToInProgress = finalTasks.some((t) => {
       const original = tasks.find((ot) => ot.id === t.id);
@@ -337,6 +351,41 @@ export function KanbanBoard({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {pendingRerun && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl">
+            <h3 className="text-sm font-medium text-zinc-100 mb-2">Re-run task?</h3>
+            <p className="text-xs text-zinc-400 mb-5">
+              This will launch a new Claude Code agent for{' '}
+              <span className="text-zinc-200 font-medium">&ldquo;{pendingRerun.taskTitle}&rdquo;</span>.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setPendingRerun(null)}
+                className="px-3 py-1.5 text-xs rounded-md border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const { finalTasks } = pendingRerun;
+                  setPendingRerun(null);
+                  setLocalTasks(finalTasks);
+                  pendingCommitRef.current = finalTasks;
+                  onReorderTasks(finalTasks);
+                  if (onRefreshTasks) {
+                    setTimeout(onRefreshTasks, 500);
+                  }
+                }}
+                className="px-3 py-1.5 text-xs rounded-md bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
