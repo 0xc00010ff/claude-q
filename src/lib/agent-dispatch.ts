@@ -36,15 +36,17 @@ export async function dispatchTask(
   let claudeFlags: string;
 
   if (mode === 'plan') {
-    prompt = `# ${taskTitle}
+    prompt = `/plan the following feature, then signal back the plan with the instructions further below
+
+# ${taskTitle}
 
 ${taskDescription}
 
-IMPORTANT: You are in PLAN MODE. Research and create a detailed implementation plan, but do NOT write or modify any code. Output your plan as findings.
-
-When completely finished, signal complete:
+When completely finished, commit and signal complete:
+1. If code was changed, stage and commit the changes with a descriptive message.
+2. Signal back to the main process to update the task board, including the results/summary ("findings") and human steps (if there are any operational steps the user should take to verify, or complete the task)
 ${callbackCurl}`;
-    claudeFlags = '--dangerously-skip-permissions --plan';
+    claudeFlags = '--dangerously-skip-permissions';
   } else if (mode === 'answer') {
     prompt = `# ${taskTitle}
 
