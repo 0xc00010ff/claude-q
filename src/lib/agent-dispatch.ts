@@ -1,5 +1,6 @@
 import { execSync } from "child_process";
 import { getAllProjects, getAllTasks, getExecutionMode } from "./db";
+import { createWorktree, removeWorktree } from "./git-worktree";
 import type { TaskMode } from "./types";
 
 const OPENCLAW = "/opt/homebrew/bin/openclaw";
@@ -72,8 +73,12 @@ ${callbackCurl}`;
   // Escape for shell
   const escapedPrompt = prompt.replace(/'/g, "'\\''");
 
+  // Create isolated worktree for this agent (falls back to projectPath on failure)
+  const worktree = createWorktree(projectPath, shortId);
+  const workingDir = worktree ?? projectPath;
+
   // Launch via tmux — session survives server restarts
-  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${projectPath}' env -u CLAUDECODE ${CLAUDE} ${claudeFlags} '${escapedPrompt}'`;
+  const tmuxCmd = `tmux new-session -d -s '${tmuxSession}' -c '${workingDir}' env -u CLAUDECODE ${CLAUDE} ${claudeFlags} '${escapedPrompt}'`;
 
   try {
     execSync(tmuxCmd, { timeout: 10_000 });
@@ -101,7 +106,7 @@ ${callbackCurl}`;
   }
 }
 
-export function abortTask(projectId: string, taskId: string) {
+export async function abortTask(projectId: string, taskId: string) {
   const shortId = taskId.slice(0, 8);
   const tmuxSession = `mc-${shortId}`;
   try {
@@ -112,6 +117,14 @@ export function abortTask(projectId: string, taskId: string) {
       `[agent-dispatch] failed to kill tmux session ${tmuxSession}:`,
       err,
     );
+  }
+
+  // Clean up worktree
+  const projects = await getAllProjects();
+  const project = projects.find((p) => p.id === projectId);
+  if (project) {
+    const projectPath = project.path.replace(/^~/, process.env.HOME || "~");
+    removeWorktree(projectPath, shortId);
   }
 }
 

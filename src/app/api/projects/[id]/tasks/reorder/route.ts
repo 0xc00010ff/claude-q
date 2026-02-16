@@ -49,7 +49,9 @@ export async function PUT(request: Request, { params }: Params) {
       // Reset session data when moved back to todo from any status
       await updateTask(params.id, item.id, { locked: false, findings: "", humanSteps: "", agentLog: "" });
       if (prevStatus === "in-progress") {
-        abortTask(params.id, item.id);
+        abortTask(params.id, item.id).catch((e) =>
+          console.error(`[reorder] abortTask failed for ${item.id}:`, e)
+        );
       }
     }
   }
