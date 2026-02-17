@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
   	extend: {
   		colors: {
-  			warm: {
+  			gunmetal: {
   				50: '#faf7f1',
   				100: '#f5f0e6',
   				200: '#ede7db',
@@ -22,6 +22,17 @@ const config: Config = {
   				800: '#3a342e',
   				900: '#2a2520',
   			},
+  			// Semantic design tokens — light/dark handled via CSS variables
+  			'surface-base': 'var(--surface-base)',
+  			'surface-primary': 'var(--surface-primary)',
+  			'surface-secondary': 'var(--surface-secondary)',
+  			'surface-hover': 'var(--surface-hover)',
+  			'border-default': 'var(--border-default)',
+  			'border-hover': 'var(--border-hover)',
+  			'border-subtle': 'var(--border-subtle)',
+  			'text-chrome': 'var(--text-chrome)',
+  			'text-chrome-hover': 'var(--text-chrome-hover)',
+  			'text-chrome-active': 'var(--text-chrome-active)',
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {

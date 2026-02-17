@@ -67,14 +67,14 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
   return (
     <div
       ref={panelRef}
-      className="w-full flex flex-col bg-warm-200 dark:bg-black/40 flex-shrink-0 font-mono"
+      className="w-full flex flex-col bg-gunmetal-200 dark:bg-black/40 flex-shrink-0 font-mono"
       style={{ minHeight: 0, ...(collapsed ? {} : style) }}
     >
       {/* Tab Bar */}
-      <div className="h-14 flex items-center border-t border-warm-300/60 dark:border-zinc-800/60 bg-warm-300/20 dark:bg-zinc-900/20 px-1 overflow-x-auto shrink-0">
+      <div className="h-14 flex items-center border-t border-gunmetal-300/60 dark:border-zinc-800/60 bg-gunmetal-300/20 dark:bg-zinc-900/20 px-1 overflow-x-auto shrink-0">
         <button
           onClick={onToggleCollapsed}
-          className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-warm-300/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 mr-2 shrink-0"
+          className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 mr-2 shrink-0"
           title={collapsed ? 'Expand terminal' : 'Collapse terminal'}
         >
           {collapsed ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -85,8 +85,8 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
             onClick={() => setActiveTabId(projectId, tab.id)}
             className={`flex items-center gap-1.5 px-3 h-8 text-xs rounded-md transition-colors shrink-0 ${
               activeTabId === tab.id
-                ? 'bg-warm-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
-                : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-warm-300/30 dark:hover:bg-zinc-800/30'
+                ? 'bg-gunmetal-300/60 dark:bg-zinc-800/60 ' + tabAccentColor(tab)
+                : 'text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30'
             }`}
           >
             <TerminalIcon className="w-3 h-3" />
@@ -108,7 +108,7 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
 
         <button
           onClick={addShellTab}
-          className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-warm-300/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 shrink-0"
+          className="flex items-center justify-center w-7 h-7 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-300/30 dark:hover:bg-zinc-800/30 rounded-md ml-1 shrink-0"
           title="New terminal"
         >
           <Plus className="w-3.5 h-3.5" />

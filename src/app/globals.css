@@ -37,6 +37,18 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+
+    /* Design system — semantic tokens (light) */
+    --surface-base: #f5f0e6;           /* gunmetal-100 */
+    --surface-primary: #faf7f1;        /* gunmetal-50 */
+    --surface-secondary: #ede7db;      /* gunmetal-200 */
+    --surface-hover: #e2dbd0;          /* gunmetal-300 */
+    --border-default: #e2dbd0;         /* gunmetal-300 */
+    --border-hover: #3a342e;           /* gunmetal-800 */
+    --border-subtle: rgba(226,219,208,0.6); /* gunmetal-300/60 */
+    --text-chrome: #7a7068;            /* gunmetal-600 */
+    --text-chrome-hover: #5c534b;      /* gunmetal-700 */
+    --text-chrome-active: #3a342e;     /* gunmetal-800 */
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -63,6 +75,18 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    /* Design system — semantic tokens (dark) */
+    --surface-base: #09090b;           /* zinc-950 */
+    --surface-primary: #18181b;        /* zinc-900 */
+    --surface-secondary: rgba(39,39,42,0.3); /* zinc-800/30 */
+    --surface-hover: #18181b;          /* zinc-900 */
+    --border-default: #27272a;         /* zinc-800 */
+    --border-hover: #3a342e;           /* gunmetal-800 — the warm accent */
+    --border-subtle: rgba(39,39,42,0.6); /* zinc-800/60 */
+    --text-chrome: #71717a;            /* zinc-500 */
+    --text-chrome-hover: #a1a1aa;      /* zinc-400 */
+    --text-chrome-active: #a89d90;     /* gunmetal-500 — warm bright */
   }
 }
 
@@ -77,21 +101,21 @@
   }
 }
 
-/* Custom scrollbar — light mode */
+/* Custom scrollbar — light mode (gunmetal palette) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f5f0e6;
+  background: #f5f0e6; /* gunmetal-100 */
 }
 ::-webkit-scrollbar-thumb {
-  background: #d4cbbf;
+  background: #d4cbbf; /* gunmetal-400 */
   border-radius: 9999px;
   border: 2px solid #f5f0e6;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a89d90;
+  background: #a89d90; /* gunmetal-500 */
 }
 
 /* Custom scrollbar — dark mode */

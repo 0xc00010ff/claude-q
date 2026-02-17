@@ -68,7 +68,7 @@ function DroppableColumn({
     <div
       ref={setNodeRef}
       className={`flex-1 flex flex-col min-w-[240px] rounded-lg transition-colors ${
-        isOver ? 'bg-warm-200/50 dark:bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
+        isOver ? 'bg-gunmetal-200/50 dark:bg-zinc-900/50 ring-2 ring-blue-500/20' : 'bg-transparent'
       }`}
     >
       {children}
@@ -312,7 +312,7 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="flex-1 h-full overflow-x-auto bg-warm-100 dark:bg-zinc-950">
+    <div className="flex-1 h-full overflow-x-auto bg-surface-base">
       <DndContext
         sensors={sensors}
         collisionDetection={rectIntersection}
@@ -370,7 +370,7 @@ export function KanbanBoard({
                       </div>
                     )}
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-warm-200 dark:bg-zinc-900 border border-warm-300 dark:border-zinc-800 text-xs text-warm-600 font-mono">
+                  <span className="px-2 py-0.5 rounded-full bg-surface-secondary border border-border-default text-xs text-text-chrome font-mono">
                     {colTasks.length}
                   </span>
                 </div>
@@ -391,15 +391,15 @@ export function KanbanBoard({
                     })}
 
                     {colTasks.length === 0 && (
-                      <div className="h-24 border-2 border-dashed border-warm-300 dark:border-zinc-900 rounded-lg flex items-center justify-center">
-                        <span className="text-xs text-warm-500 dark:text-zinc-700">Empty</span>
+                      <div className="h-24 border-2 border-dashed border-border-default rounded-lg flex items-center justify-center">
+                        <span className="text-xs text-gunmetal-500 dark:text-zinc-700">Empty</span>
                       </div>
                     )}
 
                     {column.id === 'todo' && onAddTask && (
                       <button
                         onClick={onAddTask}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-warm-200 dark:bg-zinc-800/30 border border-warm-300 dark:border-zinc-800 hover:bg-warm-300 dark:hover:bg-zinc-900 hover:border-warm-800 dark:hover:border-warm-800 text-warm-600 hover:text-warm-500 text-xs"
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
                       >
                         <PlusIcon className="w-3.5 h-3.5" />
                         <span>Add</span>

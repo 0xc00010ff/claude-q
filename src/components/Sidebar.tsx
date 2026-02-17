@@ -68,7 +68,7 @@ function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
   if (counts["todo"]) {
     segments.push(
       <span key="t" className="flex items-center gap-1">
-        <span className="inline-block w-2 h-2 rounded-full bg-warm-500 dark:bg-zinc-500 flex-shrink-0" />
+        <span className="inline-block w-2 h-2 rounded-full bg-gunmetal-500 dark:bg-zinc-500 flex-shrink-0" />
         <span className="text-zinc-500 dark:text-zinc-400">{counts["todo"]} todo</span>
       </span>
     );
@@ -111,12 +111,12 @@ function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
           e.stopPropagation();
           setOpen(!open);
         }}
-        className="p-1 rounded hover:bg-warm-300 dark:hover:bg-zinc-700 text-warm-500 hover:text-warm-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="p-1 rounded hover:bg-gunmetal-300 dark:hover:bg-zinc-700 text-gunmetal-500 hover:text-gunmetal-700 dark:hover:text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <MoreHorizontalIcon className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 w-36 bg-warm-50 dark:bg-zinc-800 border border-warm-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
+        <div className="absolute right-0 top-full mt-1 w-36 bg-gunmetal-50 dark:bg-zinc-800 border border-gunmetal-400 dark:border-zinc-700 rounded-md shadow-lg z-50 py-1">
           <button
             onClick={(e) => {
               e.preventDefault();
@@ -124,7 +124,7 @@ function ProjectMenu({ project, onDelete }: ProjectMenuProps) {
               setOpen(false);
               onDelete(project);
             }}
-            className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-warm-200 dark:hover:bg-zinc-700 flex items-center gap-2"
+            className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-gunmetal-200 dark:hover:bg-zinc-700 flex items-center gap-2"
           >
             <Trash2Icon className="w-3.5 h-3.5" />
             Delete
@@ -180,12 +180,12 @@ function SortableProject({
         href={`/projects/${project.id}`}
         onClick={pathInvalid ? (e) => { e.preventDefault(); onMissingPath?.(project); } : undefined}
         className={`w-full text-left p-3 px-4 relative group block cursor-grab active:cursor-grabbing
-          ${isActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}
-          ${index > 0 ? "border-t border-warm-300/60 dark:border-zinc-800/60" : ""}
+          ${isActive ? "bg-gunmetal-300 dark:bg-zinc-800" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}
+          ${index > 0 ? "border-t border-gunmetal-300/60 dark:border-zinc-800/60" : ""}
           py-4`}
       >
         {isActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-warm-600 dark:bg-warm-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
         )}
         {pathInvalid && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-red-500" />
@@ -195,7 +195,7 @@ function SortableProject({
         <div className="flex items-center gap-1">
           <div className="flex-1 min-w-0">
             <div
-              className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-red-500 dark:text-red-400" : isActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
+              className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-red-500 dark:text-red-400" : isActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
             >
               {folderName(project)}
             </div>
@@ -284,11 +284,11 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
   );
 
   return (
-    <aside className="w-[260px] h-full bg-warm-200/50 dark:bg-zinc-800/30 border-r border-warm-300 dark:border-zinc-800 flex flex-col flex-shrink-0">
+    <aside className="w-[260px] h-full bg-surface-secondary border-r border-border-default flex flex-col flex-shrink-0">
       {/* Header */}
-      <div className="h-16 flex items-center px-4 border-b border-warm-300/50 dark:border-zinc-800/50">
+      <div className="h-16 flex items-center px-4 border-b border-border-subtle">
         <LayoutGridIcon className="w-5 h-5 text-zinc-400 mr-3" />
-        <span className="text-sm font-bold tracking-wide text-warm-900 dark:text-zinc-100 uppercase">
+        <span className="text-sm font-bold tracking-wide text-gunmetal-900 dark:text-zinc-100 uppercase">
           Last Q
         </span>
       </div>
@@ -296,18 +296,18 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
       {/* Main Chat Item */}
       <Link
         href="/chat"
-        className={`w-full text-left p-3 px-4 relative group py-4 border-b border-warm-300/60 dark:border-zinc-800/60 block
-          ${isChatActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}`}
+        className={`w-full text-left p-3 px-4 relative group py-4 border-b border-gunmetal-300/60 dark:border-zinc-800/60 block
+          ${isChatActive ? "bg-gunmetal-300 dark:bg-zinc-800" : "hover:bg-gunmetal-300/60 dark:hover:bg-zinc-800/40"}`}
       >
         {isChatActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-warm-600 dark:bg-warm-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-gunmetal-600 dark:bg-gunmetal-500" />
         )}
         <div className="flex items-center gap-2.5">
           <MessageSquareIcon
             className={`w-4 h-4 ${isChatActive ? "text-blue-400" : "text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300"}`}
           />
           <span
-            className={`text-sm font-medium ${isChatActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
+            className={`text-sm font-medium ${isChatActive ? "text-gunmetal-900 dark:text-zinc-100" : "text-gunmetal-700 dark:text-zinc-300 group-hover:text-gunmetal-900 dark:group-hover:text-zinc-100"}`}
           >
             Big Q
           </span>
@@ -322,7 +322,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           </span>
           <button
             onClick={onAddProject}
-            className="flex items-center gap-1 py-0.5 px-2 rounded border border-zinc-500 hover:bg-warm-300 dark:hover:bg-zinc-800 hover:border-warm-500 dark:hover:border-zinc-600 text-zinc-500 hover:text-warm-700 dark:hover:text-zinc-200 text-xs"
+            className="flex items-center gap-1 py-0.5 px-2 rounded border border-zinc-500 hover:bg-gunmetal-300 dark:hover:bg-zinc-800 hover:border-gunmetal-500 dark:hover:border-zinc-600 text-zinc-500 hover:text-gunmetal-700 dark:hover:text-zinc-200 text-xs"
           >
             <PlusIcon className="w-3 h-3" />
             <span>Add</span>

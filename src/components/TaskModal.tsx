@@ -170,7 +170,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-warm-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-blue-500/50' : 'border-warm-300 dark:border-zinc-800'}`}
+        className={`relative w-full max-w-2xl bg-gunmetal-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-blue-500/50' : 'border-gunmetal-300 dark:border-zinc-800'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -196,8 +196,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 onClick={() => handleModeChange(value)}
                 className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
                   mode === value
-                    ? 'bg-zinc-600 text-zinc-100'
-                    : 'border border-zinc-700 text-zinc-500 hover:text-zinc-400 hover:border-zinc-600'
+                    ? 'bg-gunmetal-800 dark:bg-gunmetal-800 text-gunmetal-400 dark:text-gunmetal-500'
+                    : 'border border-gunmetal-300 dark:border-zinc-700 text-gunmetal-600 dark:text-zinc-500 hover:text-gunmetal-500 dark:hover:text-zinc-400 hover:border-gunmetal-800 dark:hover:border-zinc-600'
                 }`}
               >
                 {label}
@@ -216,7 +216,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 descriptionRef.current?.focus();
               }
             }}
-            className="w-full bg-transparent text-xl font-semibold text-warm-900 dark:text-zinc-100 placeholder-warm-500 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
+            className="w-full bg-transparent text-xl font-semibold text-gunmetal-900 dark:text-zinc-100 placeholder-gunmetal-500 dark:placeholder-zinc-700 focus:outline-none mb-4 pr-8"
             placeholder="Untitled"
           />
           <textarea
@@ -233,7 +233,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 }
               }
             }}
-            className="w-full min-h-[280px] bg-transparent text-sm text-warm-700 dark:text-zinc-400 placeholder-warm-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
+            className="w-full min-h-[280px] bg-transparent text-sm text-gunmetal-700 dark:text-zinc-400 placeholder-gunmetal-500 dark:placeholder-zinc-700 focus:outline-none resize-none leading-relaxed"
             placeholder="Write something..."
           />
         </div>
@@ -248,7 +248,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         )}
 
         {/* Attachment Footer */}
-        <div className="border-t border-warm-300/60 dark:border-zinc-800/60 px-4 py-3 flex flex-col gap-2.5">
+        <div className="border-t border-gunmetal-300/60 dark:border-zinc-800/60 px-4 py-3 flex flex-col gap-2.5">
           {/* Attachment list */}
           {attachments.length > 0 && (
             <div className="flex flex-wrap gap-2">
@@ -257,7 +257,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 return isImage && att.dataUrl ? (
                   <div
                     key={att.id}
-                    className="relative group rounded-md overflow-hidden border border-warm-400/50 dark:border-zinc-700/50 bg-warm-200/60 dark:bg-zinc-800/60"
+                    className="relative group rounded-md overflow-hidden border border-gunmetal-400/50 dark:border-zinc-700/50 bg-gunmetal-200/60 dark:bg-zinc-800/60"
                   >
                     <img
                       src={att.dataUrl}
@@ -281,7 +281,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
                 ) : (
                   <div
                     key={att.id}
-                    className="flex items-center gap-2 bg-warm-200/60 dark:bg-zinc-800/60 border border-warm-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group"
+                    className="flex items-center gap-2 bg-gunmetal-200/60 dark:bg-zinc-800/60 border border-gunmetal-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group"
                   >
                     <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
                     <div className="flex flex-col min-w-0">

@@ -119,16 +119,16 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-7xl h-[90vh] flex flex-row rounded-lg border border-warm-300 dark:border-[#222] bg-warm-50 dark:bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
+        className="relative w-full max-w-7xl h-[90vh] flex flex-row rounded-lg border border-gunmetal-300 dark:border-[#222] bg-gunmetal-50 dark:bg-[#141414] shadow-2xl shadow-black/60 mx-4 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Left panel: terminal or queued state (70%) ── */}
         {isQueued ? (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-8">
-            <ClockIcon className="w-8 h-8 text-warm-500 dark:text-zinc-600" />
+            <ClockIcon className="w-8 h-8 text-gunmetal-500 dark:text-zinc-600" />
             <div>
-              <p className="text-sm font-medium text-warm-600 dark:text-zinc-400">Queued</p>
-              <p className="text-xs text-warm-500 dark:text-zinc-600 mt-1">
+              <p className="text-sm font-medium text-gunmetal-600 dark:text-zinc-400">Queued</p>
+              <p className="text-xs text-gunmetal-500 dark:text-zinc-600 mt-1">
                 Waiting for the current task to finish before starting.
               </p>
             </div>
@@ -176,11 +176,11 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
         ) : null}
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[30%] border-l border-warm-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-warm-50 dark:bg-[#141414]`}>
+        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[30%] border-l border-gunmetal-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-gunmetal-50 dark:bg-[#141414]`}>
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md text-warm-500 dark:text-zinc-500 hover:text-warm-800 dark:hover:text-zinc-300 hover:bg-warm-200 dark:hover:bg-zinc-800 transition-colors z-10"
+            className="absolute top-4 right-4 p-1.5 rounded-md text-gunmetal-500 dark:text-zinc-500 hover:text-gunmetal-800 dark:hover:text-zinc-300 hover:bg-gunmetal-200 dark:hover:bg-zinc-800 transition-colors z-10"
           >
             <XIcon className="w-4 h-4" />
           </button>
@@ -210,21 +210,21 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   Completed
                 </span>
               ) : (
-                <span className="text-xs text-warm-600 dark:text-zinc-500 font-medium uppercase tracking-wide">
+                <span className="text-xs text-gunmetal-600 dark:text-zinc-500 font-medium uppercase tracking-wide">
                   {task.status}
                 </span>
               )}
-              <span className="ml-auto text-[10px] text-warm-500 dark:text-zinc-600 font-mono">{shortId}</span>
+              <span className="ml-auto text-[10px] text-gunmetal-500 dark:text-zinc-600 font-mono">{shortId}</span>
             </div>
 
             {/* Title */}
-            <h2 className="text-base font-semibold text-warm-900 dark:text-zinc-100 leading-snug">
+            <h2 className="text-base font-semibold text-gunmetal-900 dark:text-zinc-100 leading-snug">
               {task.title || 'Untitled task'}
             </h2>
 
             {/* Description */}
             {task.description && (
-              <p className="text-xs text-warm-700 dark:text-zinc-400 leading-relaxed font-mono whitespace-pre-wrap">
+              <p className="text-xs text-gunmetal-700 dark:text-zinc-400 leading-relaxed font-mono whitespace-pre-wrap">
                 {task.description}
               </p>
             )}
@@ -237,7 +237,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   return isImage && att.dataUrl ? (
                     <div
                       key={att.id}
-                      className="relative group rounded-md overflow-hidden border border-warm-400/50 dark:border-zinc-700/50 bg-warm-200/60 dark:bg-zinc-800/60 cursor-pointer"
+                      className="relative group rounded-md overflow-hidden border border-gunmetal-400/50 dark:border-zinc-700/50 bg-gunmetal-200/60 dark:bg-zinc-800/60 cursor-pointer"
                       onClick={() => window.open(att.dataUrl, '_blank')}
                     >
                       <img
@@ -254,7 +254,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   ) : (
                     <div
                       key={att.id}
-                      className="flex items-center gap-2 bg-warm-200/60 dark:bg-zinc-800/60 border border-warm-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5"
+                      className="flex items-center gap-2 bg-gunmetal-200/60 dark:bg-zinc-800/60 border border-gunmetal-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5"
                     >
                       <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
                       <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px]">
@@ -271,7 +271,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
           {/* Resize handle */}
           <div
             onMouseDown={handleResizeMouseDown}
-            className="shrink-0 h-1 cursor-row-resize border-t border-warm-300 dark:border-zinc-800 hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors group relative"
+            className="shrink-0 h-1 cursor-row-resize border-t border-gunmetal-300 dark:border-zinc-800 hover:bg-blue-500/20 active:bg-blue-500/30 transition-colors group relative"
           >
             <div className="absolute inset-x-0 -top-1 -bottom-1" />
           </div>
@@ -280,8 +280,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
           <div ref={bottomPanelRef} className={`flex-1 min-h-0 overflow-y-auto ${isLocked && !isQueued && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
             {findings.length > 0 || !isLocked || isQueued ? (
               <div className="flex items-center gap-2">
-                <ClipboardListIcon className="w-3.5 h-3.5 text-warm-600 dark:text-zinc-500" />
-                <span className="text-xs font-medium text-warm-600 dark:text-zinc-500 uppercase tracking-wide">
+                <ClipboardListIcon className="w-3.5 h-3.5 text-gunmetal-600 dark:text-zinc-500" />
+                <span className="text-xs font-medium text-gunmetal-600 dark:text-zinc-500 uppercase tracking-wide">
                   Agent Report
                 </span>
                 {findings.length > 0 && (
@@ -291,7 +291,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }}
-                    className="ml-auto text-warm-500 dark:text-zinc-600 hover:text-warm-800 dark:hover:text-zinc-300 transition-colors p-0.5"
+                    className="ml-auto text-gunmetal-500 dark:text-zinc-600 hover:text-gunmetal-800 dark:hover:text-zinc-300 transition-colors p-0.5"
                     title="Copy to clipboard"
                   >
                     {copied ? (
@@ -308,8 +308,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
               <div className="space-y-3">
                 <ul className="space-y-1.5">
                   {findings.map((finding, idx) => (
-                    <li key={idx} className="text-xs text-warm-700 dark:text-zinc-400 flex items-start font-mono">
-                      <span className="mr-2 text-warm-500 dark:text-zinc-700 shrink-0">-</span>
+                    <li key={idx} className="text-xs text-gunmetal-700 dark:text-zinc-400 flex items-start font-mono">
+                      <span className="mr-2 text-gunmetal-500 dark:text-zinc-700 shrink-0">-</span>
                       <span>{finding}</span>
                     </li>
                   ))}
@@ -321,16 +321,16 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                 <span className="text-xs text-blue-400 font-medium uppercase tracking-wide">
                   Agent working
                 </span>
-                <p className="text-xs text-warm-500 dark:text-zinc-600 italic text-center mt-1">
+                <p className="text-xs text-gunmetal-500 dark:text-zinc-600 italic text-center mt-1">
                   Agent is still working. Findings will appear here when reported.
                 </p>
               </div>
             ) : isQueued ? (
-              <p className="text-xs text-warm-500 dark:text-zinc-600 italic">
+              <p className="text-xs text-gunmetal-500 dark:text-zinc-600 italic">
                 Task is queued. Findings will appear here once the agent starts working.
               </p>
             ) : (
-              <p className="text-xs text-warm-500 dark:text-zinc-600 italic">
+              <p className="text-xs text-gunmetal-500 dark:text-zinc-600 italic">
                 No findings reported.
               </p>
             )}
@@ -338,12 +338,12 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
             {task.agentLog && (
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <FileTextIcon className="w-3.5 h-3.5 text-warm-500 dark:text-zinc-600" />
-                  <span className="text-[10px] font-medium text-warm-500 dark:text-zinc-600 uppercase tracking-wide">
+                  <FileTextIcon className="w-3.5 h-3.5 text-gunmetal-500 dark:text-zinc-600" />
+                  <span className="text-[10px] font-medium text-gunmetal-500 dark:text-zinc-600 uppercase tracking-wide">
                     Log
                   </span>
                 </div>
-                <pre className="text-[11px] text-warm-700 dark:text-zinc-500 font-mono bg-warm-100 dark:bg-zinc-950 border border-warm-300 dark:border-zinc-800 rounded-md p-3 overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
+                <pre className="text-[11px] text-gunmetal-700 dark:text-zinc-500 font-mono bg-gunmetal-100 dark:bg-zinc-950 border border-gunmetal-300 dark:border-zinc-800 rounded-md p-3 overflow-x-auto whitespace-pre-wrap max-h-48 overflow-y-auto">
                   {task.agentLog}
                 </pre>
               </div>
@@ -360,8 +360,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                 </div>
                 <ul className="space-y-1">
                   {steps.map((step, idx) => (
-                    <li key={idx} className="text-xs text-warm-800 dark:text-zinc-300 flex items-start">
-                      <span className="mr-2 text-warm-500 dark:text-zinc-600">&bull;</span>
+                    <li key={idx} className="text-xs text-gunmetal-800 dark:text-zinc-300 flex items-start">
+                      <span className="mr-2 text-gunmetal-500 dark:text-zinc-600">&bull;</span>
                       {step}
                     </li>
                   ))}
@@ -372,7 +372,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
 
           {/* Complete button pinned to bottom */}
           {task.status === 'verify' && onComplete && (
-            <div className="border-t border-warm-300 dark:border-zinc-800 p-4">
+            <div className="border-t border-gunmetal-300 dark:border-zinc-800 p-4">
               <button
                 onClick={() => onComplete(task.id)}
                 className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-green-400 border border-green-500/30 rounded-md hover:bg-green-500/10 transition-colors"
