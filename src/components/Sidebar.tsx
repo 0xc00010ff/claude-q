@@ -317,7 +317,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           <span
             className={`text-sm font-medium ${isChatActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
           >
-            Big Claude
+            Big Q
           </span>
         </div>
       </Link>
