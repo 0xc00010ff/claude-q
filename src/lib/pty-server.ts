@@ -19,7 +19,7 @@ function defaultShell(): string {
   return process.env.SHELL || "/bin/zsh";
 }
 
-export function spawnPty(tabId: string, cmd?: string, cwd?: string): PtyEntry {
+export function spawnPty(tabId: string, cmd?: string, cwd?: string): PtyEntry | null {
   const existing = activePtys.get(tabId);
   if (existing) return existing;
 
@@ -41,13 +41,19 @@ export function spawnPty(tabId: string, cmd?: string, cwd?: string): PtyEntry {
     if (key.startsWith('npm_')) delete env[key];
   }
 
-  const shell = pty.spawn(program, args, {
-    name: "xterm-256color",
-    cols: 120,
-    rows: 30,
-    cwd: resolvedCwd,
-    env,
-  });
+  let shell: pty.IPty;
+  try {
+    shell = pty.spawn(program, args, {
+      name: "xterm-256color",
+      cols: 120,
+      rows: 30,
+      cwd: resolvedCwd,
+      env,
+    });
+  } catch (err) {
+    console.error(`[pty] Failed to spawn "${program}" for tab ${tabId}:`, err);
+    return null;
+  }
 
   const entry: PtyEntry = { pty: shell, scrollback: "", cmd: resolvedCmd, cwd: resolvedCwd };
   activePtys.set(tabId, entry);
@@ -91,10 +97,18 @@ export function attachWs(tabId: string, ws: WebSocket, cwd?: string): void {
     if (tabId.startsWith('task-')) {
       const shortId = tabId.slice(5); // strip "task-" prefix
       const sess = `mc-${shortId}`;
-      entry = spawnPty(tabId, `sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do tmux has-session -t ${sess} 2>/dev/null && break; sleep 0.5; done; exec tmux attach -t ${sess}'`);
+      entry = spawnPty(tabId, `sh -c 'for i in 1 2 3 4 5 6 7 8 9 10; do tmux has-session -t ${sess} 2>/dev/null && break; sleep 0.5; done; exec tmux attach -t ${sess}'`) ?? undefined;
     } else {
-      entry = spawnPty(tabId, undefined, cwd);
+      entry = spawnPty(tabId, undefined, cwd) ?? undefined;
     }
+  }
+
+  if (!entry) {
+    try {
+      ws.send(`\r\n\x1b[31m[Failed to spawn terminal for ${tabId}]\x1b[0m\r\n`);
+      ws.close();
+    } catch {}
+    return;
   }
 
   // Clear disconnect timer

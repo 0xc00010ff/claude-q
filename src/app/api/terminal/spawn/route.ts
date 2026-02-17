@@ -8,6 +8,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "tabId is required" }, { status: 400 });
   }
 
-  spawnPty(tabId, cmd, cwd);
+  const entry = spawnPty(tabId, cmd, cwd);
+  if (!entry) {
+    return NextResponse.json({ error: "Failed to spawn terminal" }, { status: 500 });
+  }
   return NextResponse.json({ tabId });
 }

@@ -27,7 +27,16 @@ export function startTerminalServer() {
         const cwd = query.cwd as string | undefined;
         console.log(`[ws] terminal connected: ${tabId}`);
 
-        attachWs(tabId, ws, cwd);
+        try {
+          attachWs(tabId, ws, cwd);
+        } catch (err) {
+          console.error(`[ws] failed to attach terminal for ${tabId}:`, err);
+          try {
+            ws.send(`\r\n\x1b[31m[Terminal error: ${err instanceof Error ? err.message : err}]\x1b[0m\r\n`);
+            ws.close();
+          } catch {}
+          return;
+        }
 
         ws.on("message", (raw) => {
           const msg = raw.toString();
