@@ -38,12 +38,14 @@ export async function PUT(request: Request, { params }: Params) {
 
     if (newStatus === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(item.id);
-      const task = previousTasks.find((t) => t.id === item.id);
-      await updateTask(params.id, item.id, { locked: true });
-      if (await shouldDispatch(params.id)) {
-        const terminalTabId = await dispatchTask(params.id, item.id, task?.title ?? "", task?.description ?? "", task?.mode);
-        if (terminalTabId) {
-          dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
+      if (prevStatus !== "verify") {
+        const task = previousTasks.find((t) => t.id === item.id);
+        await updateTask(params.id, item.id, { locked: true });
+        if (await shouldDispatch(params.id)) {
+          const terminalTabId = await dispatchTask(params.id, item.id, task?.title ?? "", task?.description ?? "", task?.mode);
+          if (terminalTabId) {
+            dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
+          }
         }
       }
     } else if (newStatus === "todo" && prevStatus !== "todo") {

@@ -21,10 +21,12 @@ export async function PATCH(request: Request, { params }: Params) {
   if (prevTask && body.status && prevTask.status !== body.status) {
     if (body.status === "in-progress" && prevTask.status !== "in-progress") {
       cancelCleanup(params.taskId);
-      await updateTask(params.id, params.taskId, { locked: true });
-      updated.locked = true;
-      if (await shouldDispatch(params.id)) {
-        terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description, updated.mode);
+      if (prevTask.status !== "verify") {
+        await updateTask(params.id, params.taskId, { locked: true });
+        updated.locked = true;
+        if (await shouldDispatch(params.id)) {
+          terminalTabId = await dispatchTask(params.id, params.taskId, updated.title, updated.description, updated.mode);
+        }
       }
     } else if (body.status === "todo" && prevTask.status !== "todo") {
       cancelCleanup(params.taskId);
