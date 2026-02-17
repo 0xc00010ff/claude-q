@@ -1,29 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { exec } from "child_process";
+import { execFile } from "child_process";
 import path from "path";
 import { getAllProjects } from "@/lib/db";
 
-const ALLOWED_APPS: Record<string, string> = {
-  cursor: "Cursor",
-  vscode: "Visual Studio Code",
-  terminal: "Terminal",
-  warp: "Warp",
-  iterm: "iTerm",
-  finder: "Finder",
-  zed: "Zed",
-};
-
-export async function GET() {
-  return NextResponse.json({ apps: Object.keys(ALLOWED_APPS) });
-}
-
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { app, path: targetPath } = body;
+  const { path: targetPath } = body;
 
-  if (!app || !targetPath) {
+  if (!targetPath) {
     return NextResponse.json(
-      { error: "app and path are required" },
+      { error: "path is required" },
       { status: 400 }
     );
   }
@@ -37,20 +23,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "path not allowed" }, { status: 403 });
   }
 
-  const appName = ALLOWED_APPS[app];
-  if (!appName) {
-    return NextResponse.json({ error: "app not allowed" }, { status: 400 });
-  }
+  // Use osascript to show native macOS app chooser, then open the folder with it
+  const appleScript = [
+    'set chosenFile to choose file of type {"app"} default location "/Applications" with prompt "Open project with:"',
+    "set appPath to POSIX path of chosenFile",
+    `do shell script "open -a " & quoted form of appPath & " " & quoted form of "${resolved.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`,
+  ];
+
+  const args = appleScript.flatMap((line) => ["-e", line]);
 
   return new Promise<NextResponse>((resolve) => {
-    exec(`open -a "${appName}" "${resolved}"`, (error) => {
+    execFile("/usr/bin/osascript", args, (error) => {
       if (error) {
-        resolve(
-          NextResponse.json(
-            { error: `Failed to open: ${error.message}` },
-            { status: 500 }
-          )
-        );
+        // User cancelled the dialog
+        if (error.message.includes("User canceled")) {
+          resolve(NextResponse.json({ ok: true, cancelled: true }));
+        } else {
+          resolve(
+            NextResponse.json(
+              { error: `Failed to open: ${error.message}` },
+              { status: 500 }
+            )
+          );
+        }
       } else {
         resolve(NextResponse.json({ ok: true }));
       }

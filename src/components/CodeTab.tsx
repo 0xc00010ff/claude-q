@@ -5,7 +5,6 @@ import 'highlight.js/styles/github-dark.css';
 import dynamic from 'next/dynamic';
 import {
   ExternalLink,
-  ChevronDown,
   Eye,
   Code,
   Loader2,
@@ -27,15 +26,6 @@ interface CodeTabProps {
   project: Project;
 }
 
-const OPEN_APPS = [
-  { key: 'cursor', label: 'Cursor' },
-  { key: 'vscode', label: 'VS Code' },
-  { key: 'zed', label: 'Zed' },
-  { key: 'warp', label: 'Warp' },
-  { key: 'terminal', label: 'Terminal' },
-  { key: 'iterm', label: 'iTerm' },
-  { key: 'finder', label: 'Finder' },
-];
 
 const DEFAULT_TREE_WIDTH = 260;
 const MIN_TREE_WIDTH = 140;
@@ -50,7 +40,6 @@ export function CodeTab({ project }: CodeTabProps) {
   const [fileContent, setFileContent] = useState<string>('');
   const [fileLanguage, setFileLanguage] = useState<string>('plaintext');
   const [mdView, setMdView] = useState<'raw' | 'pretty'>('pretty');
-  const [openMenuOpen, setOpenMenuOpen] = useState(false);
   const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -179,21 +168,17 @@ export function CodeTab({ project }: CodeTabProps) {
     }
   }, [fileContent]);
 
-  const handleOpenWith = useCallback(
-    async (appKey: string) => {
-      setOpenMenuOpen(false);
-      try {
-        await fetch('/api/files/open', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ app: appKey, path: project.path }),
-        });
-      } catch (e) {
-        console.error('Failed to open:', e);
-      }
-    },
-    [project.path]
-  );
+  const handleOpenWith = useCallback(async () => {
+    try {
+      await fetch('/api/files/open', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: project.path }),
+      });
+    } catch (e) {
+      console.error('Failed to open:', e);
+    }
+  }, [project.path]);
 
   return (
     <div className="flex-1 flex flex-col h-full overflow-hidden bg-warm-50 dark:bg-zinc-950">
@@ -267,31 +252,13 @@ export function CodeTab({ project }: CodeTabProps) {
             </button>
           )}
 
-          <div className="relative">
           <button
-            onClick={() => setOpenMenuOpen((o) => !o)}
-            onBlur={() => setTimeout(() => setOpenMenuOpen(false), 150)}
+            onClick={handleOpenWith}
             className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-warm-800 dark:text-zinc-300 bg-warm-200 dark:bg-zinc-800 hover:bg-warm-300 dark:hover:bg-zinc-700 rounded-md border border-warm-300 dark:border-zinc-700 transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             Open with...
-            <ChevronDown className="w-3 h-3" />
           </button>
-
-          {openMenuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-44 bg-warm-50 dark:bg-zinc-800 border border-warm-300 dark:border-zinc-700 rounded-lg shadow-xl z-50 py-1">
-              {OPEN_APPS.map((app) => (
-                <button
-                  key={app.key}
-                  onClick={() => handleOpenWith(app.key)}
-                  className="w-full text-left px-3 py-1.5 text-sm text-warm-800 dark:text-zinc-300 hover:bg-warm-200 dark:hover:bg-zinc-700 transition-colors"
-                >
-                  {app.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
         </div>
       </div>
 
