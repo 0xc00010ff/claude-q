@@ -321,7 +321,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           </span>
           <button
             onClick={onAddProject}
-            className="flex items-center gap-1 py-0.5 px-2 rounded border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
+            className="flex items-center gap-1.5 py-1 px-2.5 rounded border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
           >
             <PlusIcon className="w-3 h-3" />
             <span>Add</span>
