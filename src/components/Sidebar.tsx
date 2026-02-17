@@ -185,7 +185,7 @@ function SortableProject({
           py-4`}
       >
         {isActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-warm-600 dark:bg-warm-500" />
         )}
         {pathInvalid && (
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-red-500" />
@@ -300,7 +300,7 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           ${isChatActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}`}
       >
         {isChatActive && (
-          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-blue-500" />
+          <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-warm-600 dark:bg-warm-500" />
         )}
         <div className="flex items-center gap-2.5">
           <MessageSquareIcon
