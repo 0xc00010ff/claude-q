@@ -53,7 +53,7 @@ export interface ToolCall {
 }
 
 export interface ChatLogEntry {
-  role: "twin" | "brian";
+  role: "twin" | "user";
   message: string;
   timestamp: string;
   toolCalls?: ToolCall[];

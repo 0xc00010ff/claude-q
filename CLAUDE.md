@@ -2,17 +2,16 @@
 
 ## What This Is
 
-Last Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) where Brian manages tasks across multiple coding projects. When a task moves to "In Progress", Last Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
+Last Q is the command center for AI-assisted development. It's a Next.js kanban board (localhost:7331) that manages tasks across multiple coding projects. When a task moves to "In Progress", Last Q automatically launches a Claude Code instance in a tmux session to work on it autonomously.
 
 **The loop:**
-1. Brian (or Twin, his AI assistant) creates tasks on the board
-2. Task dragged/moved to "In Progress" → MC launches a Claude Code agent in tmux against that project's codebase
-3. Agent works autonomously, commits, then curls back to MC's API to move itself to "Verify"
-4. Brian reviews. Done or back to Todo.
+1. Create tasks on the board (manually or via any chat agent that talks to the API)
+2. Task dragged/moved to "In Progress" → launches a Claude Code agent in tmux against that project's codebase
+3. Agent works autonomously, commits, then curls back to the API to move itself to "Verify"
+4. Human reviews. Done or back to Todo.
 
 **Who's who:**
-- **Brian** — Human, project owner, reviews work
-- **Twin** — Brian's AI assistant (runs in OpenClaw), creates/dispatches tasks via the API conversationally
+- **Twin** — An AI assistant that creates/dispatches tasks via the API conversationally (e.g., via OpenClaw or any chat agent)
 - **Claude Code agents** — Disposable worker instances launched per-task in tmux
 
 **Stack:** Next.js 14 (App Router), TypeScript, Tailwind CSS, shadcn/ui, lowdb, @dnd-kit, uuid
@@ -50,7 +49,7 @@ src/
 │   ├── LiveTab.tsx             # Iframe dev server preview
 │   └── CodeTab.tsx             # Code editor launcher
 └── lib/
-    ├── agent-dispatch.ts       # tmux launch + abort + Slack notifications
+    ├── agent-dispatch.ts       # tmux launch + abort + optional notifications
     ├── db.ts                   # lowdb database operations
     ├── types.ts                # All TypeScript interfaces
     └── utils.ts                # cn() utility (clsx + tailwind-merge)
@@ -70,7 +69,7 @@ This is the core automation. When a task transitions to `in-progress`:
      -H 'Content-Type: application/json' \
      -d '{"status":"verify","locked":false}'
    ```
-4. **Slack:** Sends notifications via `openclaw` CLI on dispatch and completion
+4. **Notify:** Optional Slack notifications via `notify()` (requires `OPENCLAW_BIN` + `SLACK_CHANNEL` env vars)
 5. **Abort:** `abortTask()` kills the tmux session and unlocks the task
 
 ### Task Lifecycle & Locking
@@ -89,13 +88,13 @@ todo ──drag/API──→ in-progress ──agent callback──→ verify �
 ### Data Layer
 - **`data/config.json`** — Project registry (id, name, path, status, serverUrl)
 - **`data/state/{id}.json`** — Per-project state (tasks array + chatLog array)
-- **`data/state/` is gitignored** — Each user has their own local state
+- **`data/` is gitignored** — Each user has their own local state, auto-created on first run
 - Database: lowdb (JSON file storage, no external DB needed)
 
 ### Key Types (src/lib/types.ts)
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
 - **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, locked, attachments, createdAt, updatedAt }`
-- **ChatLogEntry**: `{ role: 'twin'|'brian', message, timestamp, toolCalls? }`
+- **ChatLogEntry**: `{ role: 'twin'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
 
@@ -110,9 +109,9 @@ GET/POST       /api/projects/[id]/chat                # Chat history
 ```
 
 **Status change side effects in PATCH/reorder:**
-- → `in-progress`: sets `locked: true`, calls `dispatchTask()`, sends Slack notification
+- → `in-progress`: sets `locked: true`, calls `dispatchTask()`, sends optional notification
 - `in-progress` → `todo`: sets `locked: false`, calls `abortTask()`
-- `in-progress` → `verify`: sends Slack completion notification
+- `in-progress` → `verify`: sends optional completion notification
 
 ### Frontend Data Flow
 - Fetch all projects on mount, then tasks for each project
@@ -150,4 +149,4 @@ Tasks have fields specifically for AI agent use:
 - lowdb v7 uses ESM — all db operations are async
 - The app runs on port 7331 by default
 - Tmux sessions: `tmux attach -t mc-{first8ofTaskId}` to watch an agent work
-- Slack notifications go to channel `C0AEY4GBCGM` via `/opt/homebrew/bin/openclaw`
+- Optional Slack notifications via OpenClaw CLI — set `OPENCLAW_BIN` and `SLACK_CHANNEL` in `.env.local`

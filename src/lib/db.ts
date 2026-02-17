@@ -1,6 +1,6 @@
 import { JSONFilePreset } from "lowdb/node";
 import { v4 as uuidv4 } from "uuid";
-import { renameSync, existsSync as fsExists } from "fs";
+import { renameSync, existsSync as fsExists, mkdirSync } from "fs";
 import path from "path";
 import type {
   ConfigData,
@@ -14,6 +14,9 @@ import type { Low } from "lowdb";
 import { slugify } from "./utils";
 
 const DATA_DIR = path.join(process.cwd(), "data");
+
+// Ensure data directories exist on first access (idempotent)
+mkdirSync(path.join(DATA_DIR, "state"), { recursive: true });
 
 // ── Singleton caches to prevent concurrent write corruption ──
 let configDbInstance: Low<ConfigData> | null = null;

@@ -35,5 +35,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local data storage
-/data/state/
+# local data storage (auto-created on first run)
+/data/

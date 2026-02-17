@@ -17,7 +17,7 @@ export default function ChatPage() {
 
   const sendMainChatMessage = (content: string) => {
     const entry: ChatLogEntry = {
-      role: 'brian',
+      role: 'user',
       message: content,
       timestamp: new Date().toISOString(),
     };

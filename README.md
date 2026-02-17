@@ -1,22 +1,54 @@
 # Last Q
 
-A project management dashboard that serves as the command center for AI-assisted development. Tasks on the kanban board automatically dispatch Claude Code agents to do the work.
+A kanban command center for AI-assisted development. Tasks on the board automatically dispatch Claude Code agents to do the work.
 
 ## How It Works
 
-1. **Create tasks** on the board (manually or via Twin, an AI assistant that talks to the API)
+1. **Create tasks** on the board (manually, or via any chat agent that talks to the API)
 2. **Drag to "In Progress"** — Last Q launches a Claude Code instance in a tmux session against that project's codebase
-3. **Agent works autonomously** — commits code, then curls back to the MC API to move itself to "Verify"
+3. **Agent works autonomously** — commits code, then curls back to the API to move itself to "Verify"
 4. **Human reviews** — approve to "Done" or send back to "Todo"
 
-The agent runs with `--dangerously-skip-permissions` in a detached tmux session. While it's working, the task is locked on the board (blue pulsing border, spinner). Slack notifications fire on dispatch and completion.
+The agent runs with `--dangerously-skip-permissions` in a detached tmux session. While it's working, the task is locked on the board (blue pulsing border, spinner).
+
+## Prerequisites
+
+- **Node.js** 18+
+- **tmux** — agents run in detached tmux sessions
+- **Claude Code CLI** — must be installed and on your PATH (or set `CLAUDE_BIN` in `.env.local`)
+- **macOS** — the folder picker uses `osascript` (you can still type paths manually on other platforms)
+- **Native build tools** — `node-pty` requires compilation (`xcode-select --install` on macOS)
+
+## Getting Started
+
+```bash
+npm install
+npm run dev
+```
+
+Open [http://localhost:7331](http://localhost:7331) to view the dashboard. The `data/` directory is created automatically on first run.
+
+Copy `.env.example` to `.env.local` and adjust if needed — see [Configuration](#configuration) below.
+
+## Configuration
+
+See `.env.example` for all options. Copy it to `.env.local` to customize:
+
+```bash
+cp .env.example .env.local
+```
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CLAUDE_BIN` | `claude` | Path to the Claude Code CLI binary |
+| `OPENCLAW_BIN` | — | Path to OpenClaw CLI (optional, enables Slack notifications) |
+| `SLACK_CHANNEL` | — | Slack channel ID for notifications (requires `OPENCLAW_BIN`) |
 
 ## Features
 
 - **Kanban Board** — 4-column drag-and-drop (Todo → In Progress → Verify → Done) via @dnd-kit
 - **Agent Dispatch** — Automatic Claude Code launch in tmux on task status change
 - **Task Locking** — Prevents edits while an agent is working
-- **Slack Notifications** — Dispatch and completion alerts via OpenClaw CLI
 - **Project Sidebar** — Multi-project support with status indicators
 - **Chat Panel** — Terminal-style activity log
 - **Live Preview** — Embedded iframe for dev servers
@@ -30,28 +62,17 @@ The agent runs with `--dangerously-skip-permissions` in a detached tmux session.
 - **Database:** lowdb (JSON file storage, no external DB)
 - **Drag & Drop:** @dnd-kit
 - **Agent Runtime:** Claude Code in tmux
-- **Notifications:** OpenClaw CLI → Slack
-
-## Getting Started
-
-```bash
-npm install
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) to view the dashboard.
 
 ## Data Storage
 
-File-based JSON storage — no external database required.
+File-based JSON storage — no external database required. The `data/` directory is gitignored and auto-created on first run.
 
 - `data/config.json` — Project registry (name, path, status, serverUrl)
 - `data/state/{project-id}.json` — Per-project tasks and chat history
-- State files are gitignored so each environment maintains its own data
 
 ## API
 
-All endpoints under `/api/projects`:
+All endpoints under `/api/projects`. The API can be consumed by any autonomous chat agent (e.g., [OpenClaw](https://github.com/openclaw)) to create and manage tasks programmatically.
 
 | Endpoint | Methods | Description |
 |----------|---------|-------------|
@@ -66,9 +87,9 @@ All endpoints under `/api/projects`:
 
 Agents report completion by curling back:
 ```bash
-curl -s -X PATCH http://localhost:3000/api/projects/{projectId}/tasks/{taskId} \
+curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
   -H 'Content-Type: application/json' \
-  -d '{"status":"verify","locked":false}'
+  -d '{"status":"verify","locked":false,"findings":"summary of work","humanSteps":"verification steps"}'
 ```
 
 ## Watching Agents
@@ -80,7 +101,7 @@ tmux attach -t mc-{first-8-chars-of-task-id}
 ## Scripts
 
 ```bash
-npm run dev    # Development server
+npm run dev    # Development server (port 7331)
 npm run build  # Production build
 npm run start  # Production server
 npm run lint   # ESLint

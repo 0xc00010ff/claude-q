@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { execSync } from "child_process";
 import { getTask, updateTask, deleteTask } from "@/lib/db";
-import { dispatchTask, abortTask, shouldDispatch, dispatchNextQueued, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
-
-const OPENCLAW = "/opt/homebrew/bin/openclaw";
+import { dispatchTask, abortTask, shouldDispatch, dispatchNextQueued, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 
 type Params = { params: { id: string; taskId: string } };
 
@@ -42,16 +39,7 @@ export async function PATCH(request: Request, { params }: Params) {
       }
     } else if (prevTask.status === "in-progress" && (body.status === "verify" || body.status === "done")) {
       scheduleCleanup(params.id, params.taskId);
-      // Agent completed — notify Slack
-      try {
-        const title = updated.title.replace(/"/g, '\\"');
-        execSync(
-          `${OPENCLAW} message send --channel slack --target C0AEY4GBCGM --message "✅ *${title}* → ${body.status}"`,
-          { timeout: 10_000 }
-        );
-      } catch (e) {
-        console.error(`[task-patch] slack verify notify failed:`, e);
-      }
+      notify(`✅ *${updated.title.replace(/"/g, '\\"')}* → ${body.status}`);
       // Auto-dispatch next queued task in sequential mode
       dispatchNextQueued(params.id).catch(e =>
         console.error(`[task-patch] auto-dispatch next failed:`, e)

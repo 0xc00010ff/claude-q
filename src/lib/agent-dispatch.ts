@@ -4,9 +4,22 @@ import { getAllProjects, getAllTasks, getExecutionMode, updateTask } from "./db"
 import { stripAnsi } from "./utils";
 import type { TaskMode } from "./types";
 
-const OPENCLAW = "/opt/homebrew/bin/openclaw";
 const MC_API = "http://localhost:7331";
-const CLAUDE = process.env.CLAUDE_BIN || "/Users/brian/.local/bin/claude";
+const CLAUDE = process.env.CLAUDE_BIN || "claude";
+
+export function notify(message: string) {
+  const bin = process.env.OPENCLAW_BIN;
+  const channel = process.env.SLACK_CHANNEL;
+  if (!bin || !channel) return;
+  try {
+    execSync(
+      `${bin} message send --channel slack --target ${channel} --message "${message}"`,
+      { timeout: 10_000 },
+    );
+  } catch (e) {
+    console.error(`[notify] failed:`, e);
+  }
+}
 const CLEANUP_DELAY_MS = 60 * 60 * 1000; // 1 hour
 
 // Track scheduled cleanup timers for completed agent sessions
@@ -170,15 +183,7 @@ ${callbackCurl}
       `[agent-dispatch] launched tmux session ${tmuxSession} for task ${taskId}`,
     );
 
-    // Notify Slack
-    try {
-      execSync(
-        `${OPENCLAW} message send --channel slack --target C0AEY4GBCGM --message "🚀 *${taskTitle.replace(/"/g, '\\"')}* dispatched"`,
-        { timeout: 10_000 },
-      );
-    } catch (e) {
-      console.error(`[agent-dispatch] slack notify failed:`, e);
-    }
+    notify(`🚀 *${taskTitle.replace(/"/g, '\\"')}* dispatched`);
 
     return terminalTabId;
   } catch (err) {
