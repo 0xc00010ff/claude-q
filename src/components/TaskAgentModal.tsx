@@ -176,11 +176,11 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
         ) : null}
 
         {/* ── Right panel: task details (30% with terminal, full width without) ── */}
-        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[30%] border-l border-gunmetal-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-gunmetal-50 dark:bg-[#141414]`}>
+        <div ref={rightPanelRef} className={`${showTerminal || isQueued ? 'w-[33%] border-l border-gunmetal-300 dark:border-zinc-800' : 'w-full'} shrink-0 flex flex-col overflow-hidden bg-gunmetal-50 dark:bg-[#141414]`}>
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-1.5 rounded-md text-gunmetal-500 dark:text-zinc-500 hover:text-gunmetal-800 dark:hover:text-zinc-300 hover:bg-gunmetal-200 dark:hover:bg-zinc-800 transition-colors z-10"
+            className="absolute top-4 right-4 p-1.5 rounded-md text-text-chrome hover:text-text-chrome-hover hover:bg-surface-hover transition-colors z-10"
           >
             <XIcon className="w-4 h-4" />
           </button>
@@ -291,7 +291,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }}
-                    className="ml-auto text-gunmetal-500 dark:text-zinc-600 hover:text-gunmetal-800 dark:hover:text-zinc-300 transition-colors p-0.5"
+                    className="ml-auto text-text-chrome hover:text-text-chrome-hover transition-colors p-0.5"
                     title="Copy to clipboard"
                   >
                     {copied ? (
@@ -372,10 +372,11 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
 
           {/* Complete button pinned to bottom */}
           {task.status === 'verify' && onComplete && (
-            <div className="border-t border-gunmetal-300 dark:border-zinc-800 p-4">
+            <div className="shrink-0 group/complete">
+              <div className="h-px bg-gunmetal-300 dark:bg-zinc-800 group-hover/complete:bg-patina/40 transition-colors" />
               <button
                 onClick={() => onComplete(task.id)}
-                className="flex items-center justify-center gap-1.5 w-full px-3 py-2 text-xs font-medium text-patina border border-patina/30 rounded-md hover:bg-patina/10 transition-colors"
+                className="flex items-center justify-center gap-1.5 w-full px-3 py-5 text-xs font-medium text-patina/80 hover:text-patina hover:bg-patina/10 transition-colors"
               >
                 <CheckCircle2Icon className="w-3.5 h-3.5" />
                 Complete

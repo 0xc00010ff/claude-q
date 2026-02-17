@@ -13,6 +13,16 @@ interface TaskModalProps {
   onMoveToInProgress?: (taskId: string, currentData: Partial<Task>) => Promise<void>;
 }
 
+function openDataUrl(dataUrl: string) {
+  const [header, base64] = dataUrl.split(',');
+  const mime = header.match(/:(.*?);/)?.[1] || 'application/octet-stream';
+  const bin = atob(base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const blob = new Blob([arr], { type: mime });
+  window.open(URL.createObjectURL(blob), '_blank');
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -170,7 +180,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
       />
 
       <div
-        className={`relative w-full max-w-2xl bg-gunmetal-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors ${isDragOver ? 'border-steel/50' : 'border-gunmetal-300 dark:border-zinc-800'}`}
+        className={`relative w-full max-w-2xl bg-gunmetal-50 dark:bg-zinc-900 border rounded-lg shadow-2xl flex flex-col max-h-[85vh] animate-in fade-in zoom-in-95 duration-150 transition-colors overflow-hidden ${isDragOver ? 'border-steel/50' : 'border-gunmetal-300 dark:border-zinc-800'}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
@@ -185,21 +195,28 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 pt-5">
           {/* Mode selector */}
-          <div className="flex gap-1.5 mb-3">
+          <div className="bg-surface-secondary p-0.5 rounded-md flex items-center border border-border-default w-fit mb-3">
             {([
-              ['code', 'Code'],
-              ['plan', 'Plan'],
-              ['answer', 'Answer'],
-            ] as const).map(([value, label]) => (
+              ['code', 'Code', 'Coding mode. Bypass permissions.'],
+              ['plan', 'Plan', 'Planning mode. Agent proposes, you approve.'],
+              ['answer', 'Answer', 'Answer mode. Research only, no code changes.'],
+            ] as const).map(([value, label, tooltip]) => (
               <button
                 key={value}
                 onClick={() => handleModeChange(value)}
-                className={`px-2.5 py-1 text-xs rounded-sm transition-colors ${
+                title={tooltip}
+                className={`relative px-3 py-1 text-xs font-medium rounded transition-colors z-10 ${
                   mode === value
-                    ? 'bg-gunmetal-800 dark:bg-gunmetal-800 text-gunmetal-400 dark:text-gunmetal-500'
-                    : 'border border-gunmetal-300 dark:border-zinc-700 text-gunmetal-600 dark:text-zinc-500 hover:text-gunmetal-500 dark:hover:text-zinc-400 hover:border-gunmetal-800 dark:hover:border-zinc-600'
+                    ? 'text-text-chrome-active'
+                    : 'text-text-chrome hover:text-text-chrome-hover'
                 }`}
               >
+                {mode === value && (
+                  <div
+                    className="absolute inset-0 bg-gunmetal-50 dark:bg-zinc-800/60 rounded border border-gunmetal-400/50 dark:border-gunmetal-800/50 shadow-sm"
+                    style={{ zIndex: -1 }}
+                  />
+                )}
                 {label}
               </button>
             ))}
@@ -247,92 +264,92 @@ export function TaskModal({ task, isOpen, onClose, onSave, onMoveToInProgress }:
           </div>
         )}
 
-        {/* Attachment Footer */}
-        <div className="border-t border-gunmetal-300/60 dark:border-zinc-800/60 px-4 py-3 flex flex-col gap-2.5">
-          {/* Attachment list */}
-          {attachments.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {attachments.map((att) => {
-                const isImage = att.type?.startsWith('image/') || false;
-                return isImage && att.dataUrl ? (
-                  <div
-                    key={att.id}
-                    className="relative group rounded-md overflow-hidden border border-gunmetal-400/50 dark:border-zinc-700/50 bg-gunmetal-200/60 dark:bg-zinc-800/60"
+        {/* Attachments — float above footer inside the content area */}
+        {attachments.length > 0 && (
+          <div className="px-6 pb-4 flex flex-wrap gap-2 shrink-0">
+            {attachments.map((att) => {
+              const isImage = att.type?.startsWith('image/') || false;
+              return isImage && att.dataUrl ? (
+                <div
+                  key={att.id}
+                  className="relative group rounded-md overflow-hidden border border-gunmetal-400/50 dark:border-zinc-700/50 bg-gunmetal-200/60 dark:bg-zinc-800/60 cursor-pointer"
+                  onClick={() => openDataUrl(att.dataUrl)}
+                >
+                  <img
+                    src={att.dataUrl}
+                    alt={att.name}
+                    className="h-20 w-auto max-w-[120px] object-cover block"
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                    className="absolute top-1 right-1 p-0.5 rounded bg-black/60 text-white/80 hover:text-crimson opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   >
-                    <img
-                      src={att.dataUrl}
-                      alt={att.name}
-                      className="h-20 w-auto max-w-[120px] object-cover block"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                      <button
-                        onClick={() => removeAttachment(att.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-white/80 hover:text-crimson p-1"
-                      >
-                        <XIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] text-zinc-300 truncate block">
-                        {att.name}
-                      </span>
-                    </div>
+                    <XIcon className="w-3 h-3" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-1.5 py-1">
+                    <span className="text-[10px] text-zinc-300 truncate block">
+                      {att.name}
+                    </span>
                   </div>
-                ) : (
-                  <div
-                    key={att.id}
-                    className="flex items-center gap-2 bg-gunmetal-200/60 dark:bg-zinc-800/60 border border-gunmetal-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group"
+                </div>
+              ) : (
+                <div
+                  key={att.id}
+                  className="flex items-center gap-2 bg-gunmetal-200/60 dark:bg-zinc-800/60 border border-gunmetal-400/50 dark:border-zinc-700/50 rounded-md px-3 py-2.5 group cursor-pointer"
+                  onClick={() => att.dataUrl && openDataUrl(att.dataUrl)}
+                >
+                  <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px] leading-tight">
+                      {att.name}
+                    </span>
+                    <span className="text-[10px] text-zinc-600 leading-tight">
+                      {formatSize(att.size)}
+                    </span>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeAttachment(att.id); }}
+                    className="text-zinc-600 hover:text-crimson transition-colors ml-1 opacity-0 group-hover:opacity-100"
                   >
-                    <FileIcon className="w-4 h-4 text-zinc-500 shrink-0" />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] text-zinc-700 dark:text-zinc-300 truncate max-w-[140px] leading-tight">
-                        {att.name}
-                      </span>
-                      <span className="text-[10px] text-zinc-600 leading-tight">
-                        {formatSize(att.size)}
-                      </span>
-                    </div>
-                    <button
-                      onClick={() => removeAttachment(att.id)}
-                      className="text-zinc-600 hover:text-crimson transition-colors ml-1 opacity-0 group-hover:opacity-100"
-                    >
-                      <XIcon className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+                    <XIcon className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Footer toolbar */}
+        <div className="border-t border-gunmetal-300/60 dark:border-zinc-800/60 flex items-stretch shrink-0">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs px-4 py-3"
+          >
+            <PaperclipIcon className="w-3.5 h-3.5" />
+            <span>Attach file</span>
+          </button>
+
+          <div className="flex-1" />
+
+          {onMoveToInProgress && (
+            <button
+              onClick={async () => {
+                if (saveTimeout.current) clearTimeout(saveTimeout.current);
+                setDispatching(true);
+                await onMoveToInProgress(task.id, { title, description, attachments, mode });
+              }}
+              disabled={!title.trim() || dispatching}
+              className={`flex items-center gap-1.5 px-4 py-3 text-xs font-medium text-steel/80 border-l border-border-default transition-colors ${dispatching ? 'pointer-events-none' : 'hover:text-steel hover:border-steel/50 hover:bg-steel/10 disabled:opacity-30 disabled:pointer-events-none'}`}
+            >
+              {dispatching ? (
+                <Loader2Icon className="w-3 h-3 animate-spin" />
+              ) : (
+                <PlayIcon className="w-3 h-3" />
+              )}
+              {dispatching ? 'Starting...' : 'Start Now'}
+            </button>
           )}
 
-          {/* Toolbar row */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors text-xs w-fit"
-            >
-              <PaperclipIcon className="w-3.5 h-3.5" />
-              <span>Attach file</span>
-            </button>
-
-            {onMoveToInProgress && (
-              <button
-                onClick={async () => {
-                  if (saveTimeout.current) clearTimeout(saveTimeout.current);
-                  setDispatching(true);
-                  await onMoveToInProgress(task.id, { title, description, attachments, mode });
-                }}
-                disabled={!title.trim() || dispatching}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-steel border border-steel/50 rounded-md transition-colors ${dispatching ? 'pointer-events-none' : 'hover:bg-steel/10 hover:border-steel disabled:opacity-30 disabled:pointer-events-none'}`}
-              >
-                {dispatching ? (
-                  <Loader2Icon className="w-3 h-3 animate-spin" />
-                ) : (
-                  <PlayIcon className="w-3 h-3" />
-                )}
-                {dispatching ? 'Starting...' : 'Start Now'}
-              </button>
-            )}
-          </div>
           <input
             ref={fileInputRef}
             type="file"
