@@ -10,6 +10,7 @@ import {
   Code,
   Loader2,
   Check,
+  Copy,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -53,6 +54,7 @@ export function CodeTab({ project }: CodeTabProps) {
   const [treeWidth, setTreeWidth] = useState(DEFAULT_TREE_WIDTH);
   const [isDragging, setIsDragging] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
   const containerRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,6 +168,17 @@ export function CodeTab({ project }: CodeTabProps) {
     };
   }, []);
 
+  const handleCopyFile = useCallback(async () => {
+    if (!fileContent) return;
+    try {
+      await navigator.clipboard.writeText(fileContent);
+      setCopyStatus('copied');
+      setTimeout(() => setCopyStatus('idle'), 2000);
+    } catch {
+      console.error('Failed to copy file contents');
+    }
+  }, [fileContent]);
+
   const handleOpenWith = useCallback(
     async (appKey: string) => {
       setOpenMenuOpen(false);
@@ -234,7 +247,27 @@ export function CodeTab({ project }: CodeTabProps) {
           )}
         </div>
 
-        <div className="relative">
+        <div className="flex items-center gap-2">
+          {selectedPath && (
+            <button
+              onClick={handleCopyFile}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-warm-800 dark:text-zinc-300 bg-warm-200 dark:bg-zinc-800 hover:bg-warm-300 dark:hover:bg-zinc-700 rounded-md border border-warm-300 dark:border-zinc-700 transition-colors"
+            >
+              {copyStatus === 'copied' ? (
+                <>
+                  <Check className="w-3 h-3 text-green-400" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3 h-3" />
+                  Copy
+                </>
+              )}
+            </button>
+          )}
+
+          <div className="relative">
           <button
             onClick={() => setOpenMenuOpen((o) => !o)}
             onBlur={() => setTimeout(() => setOpenMenuOpen(false), 150)}
@@ -258,6 +291,7 @@ export function CodeTab({ project }: CodeTabProps) {
               ))}
             </div>
           )}
+        </div>
         </div>
       </div>
 
