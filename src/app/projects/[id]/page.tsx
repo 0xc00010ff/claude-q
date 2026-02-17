@@ -37,10 +37,10 @@ export default function ProjectPage() {
   const project = projects.find((p) => p.id === projectId);
   const tasks = tasksByProject[projectId] || [];
 
-  // Update document title with project name
+  // Update document title with project id (slug)
   useEffect(() => {
-    document.title = project ? `Q - ${project.name}` : 'Last Q';
-  }, [project?.name]);
+    document.title = project ? `Q - ${project.id}` : 'Q';
+  }, [project?.id]);
 
   const fetchExecutionMode = useCallback(async () => {
     try {
