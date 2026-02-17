@@ -399,7 +399,7 @@ export function KanbanBoard({
                     {column.id === 'todo' && onAddTask && (
                       <button
                         onClick={onAddTask}
-                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-warm-200 dark:bg-zinc-800/30 border border-warm-300 dark:border-zinc-800 hover:bg-warm-300 dark:hover:bg-zinc-900 hover:border-warm-400 dark:hover:border-zinc-700 text-warm-600 hover:text-warm-700 dark:hover:text-zinc-300 text-xs"
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-warm-200 dark:bg-zinc-800/30 border border-warm-300 dark:border-zinc-800 hover:bg-warm-300 dark:hover:bg-zinc-900 hover:border-warm-800 dark:hover:border-warm-800 text-warm-600 hover:text-warm-500 text-xs"
                       >
                         <PlusIcon className="w-3.5 h-3.5" />
                         <span>Add</span>
