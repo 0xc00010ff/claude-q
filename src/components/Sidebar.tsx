@@ -324,8 +324,17 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
 
       {/* Project List */}
       <div className="flex-1 overflow-y-auto">
-        <div className="px-4 py-3 text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
-          Projects
+        <div className="px-4 py-3 flex items-center justify-between">
+          <span className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest">
+            Projects
+          </span>
+          <button
+            onClick={onAddProject}
+            className="flex items-center gap-1 py-0.5 px-2 rounded border border-zinc-500 hover:bg-warm-300 dark:hover:bg-zinc-800 hover:border-warm-500 dark:hover:border-zinc-600 text-zinc-500 hover:text-warm-700 dark:hover:text-zinc-200 text-xs"
+          >
+            <PlusIcon className="w-3 h-3" />
+            <span>Add</span>
+          </button>
         </div>
         <DndContext
           sensors={sensors}
@@ -355,16 +364,6 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
         </DndContext>
       </div>
 
-      {/* Footer */}
-      <div className="h-14 flex items-center px-3 border-t border-warm-300 dark:border-zinc-800 shrink-0">
-        <button
-          onClick={onAddProject}
-          className="w-full flex items-center justify-center space-x-2 py-2 px-3 rounded-md border border-warm-400 dark:border-zinc-700 hover:bg-warm-300 dark:hover:bg-zinc-800 hover:border-warm-500 dark:hover:border-zinc-600 text-warm-600 dark:text-zinc-400 hover:text-warm-700 dark:hover:text-zinc-200 text-sm"
-        >
-          <PlusIcon className="w-4 h-4" />
-          <span>Add Project</span>
-        </button>
-      </div>
     </aside>
   );
 }
