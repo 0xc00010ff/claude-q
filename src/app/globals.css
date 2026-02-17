@@ -84,8 +84,8 @@
     --border-default: #27272a;         /* zinc-800 */
     --border-hover: #3a342e;           /* gunmetal-800 — the warm accent */
     --border-subtle: rgba(39,39,42,0.6); /* zinc-800/60 */
-    --text-chrome: #71717a;            /* zinc-500 */
-    --text-chrome-hover: #a1a1aa;      /* zinc-400 */
+    --text-chrome: #7a7068;            /* gunmetal-600 — warm, not gray */
+    --text-chrome-hover: #a89d90;      /* gunmetal-500 — brighter warm */
     --text-chrome-active: #a89d90;     /* gunmetal-500 — warm bright */
   }
 }
