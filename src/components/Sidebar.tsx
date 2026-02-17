@@ -26,7 +26,6 @@ import {
   RefreshCwIcon,
   CheckCircle2Icon,
   MoreHorizontalIcon,
-  GripVerticalIcon,
   Trash2Icon,
   AlertTriangleIcon,
 } from "lucide-react";
@@ -176,9 +175,11 @@ function SortableProject({
   return (
     <div ref={setNodeRef} style={style} {...attributes}>
       <Link
+        ref={setActivatorNodeRef}
+        {...listeners}
         href={`/projects/${project.id}`}
         onClick={pathInvalid ? (e) => { e.preventDefault(); onMissingPath?.(project); } : undefined}
-        className={`w-full text-left p-3 px-4 relative group block
+        className={`w-full text-left p-3 px-4 relative group block cursor-grab active:cursor-grabbing
           ${isActive ? "bg-warm-300 dark:bg-zinc-800" : "hover:bg-warm-300/60 dark:hover:bg-zinc-800/40"}
           ${index > 0 ? "border-t border-warm-300/60 dark:border-zinc-800/60" : ""}
           py-4`}
@@ -190,17 +191,8 @@ function SortableProject({
           <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-red-500" />
         )}
 
-        {/* Top row: drag handle + name + menu */}
+        {/* Top row: name + menu */}
         <div className="flex items-center gap-1">
-          <button
-            ref={setActivatorNodeRef}
-            {...listeners}
-            className="p-0.5 -ml-1 cursor-grab active:cursor-grabbing text-warm-400 dark:text-zinc-600 hover:text-warm-600 dark:hover:text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-            onClick={(e) => e.preventDefault()}
-          >
-            <GripVerticalIcon className="w-3.5 h-3.5" />
-          </button>
-
           <div className="flex-1 min-w-0">
             <div
               className={`text-sm font-medium leading-tight truncate ${pathInvalid ? "text-red-500 dark:text-red-400" : isActive ? "text-warm-900 dark:text-zinc-100" : "text-warm-700 dark:text-zinc-300 group-hover:text-warm-900 dark:group-hover:text-zinc-100"}`}
@@ -226,12 +218,12 @@ function SortableProject({
         </div>
 
         {/* Path */}
-        <div className={`text-[11px] font-mono mt-1 truncate pl-4 ${pathInvalid ? "text-red-400/60 dark:text-red-500/50" : "text-zinc-400 dark:text-zinc-600"}`}>
+        <div className={`text-[11px] font-mono mt-1 truncate ${pathInvalid ? "text-red-400/60 dark:text-red-500/50" : "text-zinc-400 dark:text-zinc-600"}`}>
           {project.path}
         </div>
 
         {/* Task Summary */}
-        <div className="mt-2.5 text-[11px] pl-4">
+        <div className="mt-2.5 text-[11px]">
           {pathInvalid ? (
             <span className="text-red-400 dark:text-red-500 text-[11px]">Folder not found</span>
           ) : (
