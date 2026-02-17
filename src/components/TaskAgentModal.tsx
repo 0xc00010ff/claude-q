@@ -237,7 +237,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   return isImage && att.dataUrl ? (
                     <div
                       key={att.id}
-                      className="relative group rounded-md overflow-hidden border border-warm-400/50 dark:border-zinc-700/50 bg-warm-200/60 dark:bg-zinc-800/60"
+                      className="relative group rounded-md overflow-hidden border border-warm-400/50 dark:border-zinc-700/50 bg-warm-200/60 dark:bg-zinc-800/60 cursor-pointer"
+                      onClick={() => window.open(att.dataUrl, '_blank')}
                     >
                       <img
                         src={att.dataUrl}
