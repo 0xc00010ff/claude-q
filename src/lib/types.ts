@@ -73,4 +73,5 @@ export interface ProjectState {
   chatLog: ChatLogEntry[];
   agentSession?: AgentSession;
   executionMode?: ExecutionMode;
+  terminalOpen?: boolean;
 }

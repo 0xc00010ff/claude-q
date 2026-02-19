@@ -20,13 +20,7 @@ export default function ProjectPage() {
   const [activeTab, setActiveTab] = useState<TabOption>('project');
   const [chatPercent, setChatPercent] = useState(60);
   const [isDragging, setIsDragging] = useState(false);
-  const [terminalCollapsed, setTerminalCollapsed] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('mc-terminal-collapsed');
-      return stored !== null ? stored === 'true' : true;
-    }
-    return true;
-  });
+  const [terminalCollapsed, setTerminalCollapsed] = useState(true);
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
@@ -41,6 +35,15 @@ export default function ProjectPage() {
   useEffect(() => {
     document.title = project ? `Q - ${project.id}` : 'Q';
   }, [project?.id]);
+
+  // Fetch terminal open/closed state from server
+  useEffect(() => {
+    if (!projectId) return;
+    fetch(`/api/projects/${projectId}/terminal-open`)
+      .then((res) => res.json())
+      .then((data) => setTerminalCollapsed(!data.open))
+      .catch(() => {});
+  }, [projectId]);
 
   const fetchExecutionMode = useCallback(async () => {
     try {
@@ -140,10 +143,14 @@ export default function ProjectPage() {
   const toggleTerminalCollapsed = useCallback(() => {
     setTerminalCollapsed((prev) => {
       const next = !prev;
-      localStorage.setItem('mc-terminal-collapsed', String(next));
+      fetch(`/api/projects/${projectId}/terminal-open`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ open: !next }),
+      }).catch(() => {});
       return next;
     });
-  }, []);
+  }, [projectId]);
 
   // Resize handle
   const handleMouseDown = useCallback((e: React.MouseEvent) => {

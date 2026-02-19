@@ -268,6 +268,23 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 }
 
 // ═══════════════════════════════════════════════════════════
+// TERMINAL STATE
+// ═══════════════════════════════════════════════════════════
+
+export async function getTerminalOpen(projectId: string): Promise<boolean> {
+  const db = await getStateDb(projectId);
+  return db.data.terminalOpen ?? false;
+}
+
+export async function setTerminalOpen(projectId: string, open: boolean): Promise<void> {
+  return withWriteLock(`state:${projectId}`, async () => {
+    const db = await getStateDb(projectId);
+    db.data.terminalOpen = open;
+    await db.write();
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
 // CHAT LOG
 // ═══════════════════════════════════════════════════════════
 
