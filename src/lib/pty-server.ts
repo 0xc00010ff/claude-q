@@ -1,14 +1,14 @@
 import * as net from "net";
-import * as pty from "node-pty";
-import { existsSync } from "fs";
-import { homedir } from "os";
+import { execSync } from "child_process";
+import { existsSync, writeFileSync, mkdirSync, unlinkSync } from "fs";
+import { join } from "path";
+import { tmpdir, homedir } from "os";
 import type { WebSocket } from "ws";
 
 const SCROLLBACK_LIMIT = 50 * 1024; // 50 KB ring buffer per PTY
 
 interface PtyEntry {
-  pty?: pty.IPty;        // Shell terminals
-  socket?: net.Socket;   // Task terminals (bridge socket)
+  socket?: net.Socket;
   ws?: WebSocket;
   disconnectTimer?: ReturnType<typeof setTimeout>;
   scrollback: string;
@@ -22,77 +22,68 @@ function defaultShell(): string {
   return process.env.SHELL || "/bin/zsh";
 }
 
-export function spawnPty(tabId: string, cmd?: string, cwd?: string): PtyEntry | null {
-  const existing = activePtys.get(tabId);
-  if (existing) return existing;
+/**
+ * Derive tmux session name from tabId.
+ * Task tabs: "task-{shortId}" → "mc-{shortId}"
+ * Shell tabs: "{tabId}" as-is (e.g. "default-abc12345", "shell-xyz98765")
+ */
+function sessionName(tabId: string): string {
+  if (tabId.startsWith("task-")) {
+    return `mc-${tabId.slice(5)}`;
+  }
+  return tabId;
+}
+
+/**
+ * Derive bridge socket path from tabId.
+ */
+function socketPath(tabId: string): string {
+  return `/tmp/proq/${sessionName(tabId)}.sock`;
+}
+
+/**
+ * Spawn a shell terminal in tmux via proq-bridge.
+ * Returns true if the session was launched (or already existed).
+ */
+export function spawnShellSession(tabId: string, cmd?: string, cwd?: string): boolean {
+  const session = sessionName(tabId);
+  const sock = socketPath(tabId);
+
+  // Idempotent: if tmux session already exists, nothing to do
+  try {
+    execSync(`tmux has-session -t '${session}' 2>/dev/null`, { timeout: 3_000 });
+    return true;
+  } catch {
+    // Session doesn't exist, proceed to create it
+  }
 
   const resolvedCmd = cmd || defaultShell();
   const rawCwd = cwd || process.cwd();
   const resolvedCwd = rawCwd.startsWith("~") ? rawCwd.replace("~", homedir()) : rawCwd;
 
-  // Parse command: first token is the program, rest are args
-  const parts = resolvedCmd.match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [resolvedCmd];
-  const program = parts[0];
-  const args = parts.slice(1).map((a) => a.replace(/^['"]|['"]$/g, ""));
+  // Write launcher script
+  const promptDir = join(tmpdir(), "proq-prompts");
+  mkdirSync(promptDir, { recursive: true });
+  const launcherFile = join(promptDir, `${session}.sh`);
+  writeFileSync(launcherFile, `#!/bin/bash\nexec ${resolvedCmd}\n`, "utf-8");
 
-  // Clean env: strip vars that cause issues in interactive shells
-  const env = { ...process.env } as Record<string, string>;
-  delete env.CLAUDECODE;
-  delete env.npm_config_prefix;
-  // Remove all npm_* env vars injected by the parent npm process
-  for (const key of Object.keys(env)) {
-    if (key.startsWith('npm_')) delete env[key];
-  }
+  // Ensure socket directory exists
+  mkdirSync("/tmp/proq", { recursive: true });
 
-  let shell: pty.IPty;
+  const bridgePath = join(process.cwd(), "src/lib/proq-bridge.js");
+  const tmuxCmd = `tmux new-session -d -s '${session}' -c '${resolvedCwd}' node '${bridgePath}' '${sock}' '${launcherFile}'`;
+
   try {
-    shell = pty.spawn(program, args, {
-      name: "xterm-256color",
-      cols: 120,
-      rows: 30,
-      cwd: resolvedCwd,
-      env,
-    });
+    execSync(tmuxCmd, { timeout: 10_000 });
+    console.log(`[pty] launched tmux shell session ${session} for tab ${tabId}`);
+    return true;
   } catch (err) {
-    console.error(`[pty] Failed to spawn "${program}" for tab ${tabId}:`, err);
-    return null;
+    console.error(`[pty] failed to spawn shell session for ${tabId}:`, err);
+    return false;
   }
-
-  const entry: PtyEntry = { pty: shell, scrollback: "", cmd: resolvedCmd, cwd: resolvedCwd };
-  activePtys.set(tabId, entry);
-
-  // Capture all output into scrollback buffer
-  shell.onData((data: string) => {
-    // Append to ring buffer, trim if over limit
-    entry.scrollback += data;
-    if (entry.scrollback.length > SCROLLBACK_LIMIT) {
-      entry.scrollback = entry.scrollback.slice(-SCROLLBACK_LIMIT);
-    }
-
-    // Forward to attached WS if any
-    if (entry.ws) {
-      try {
-        if (entry.ws.readyState === entry.ws.OPEN) {
-          entry.ws.send(data);
-        }
-      } catch {}
-    }
-  });
-
-  shell.onExit(({ exitCode }) => {
-    const current = activePtys.get(tabId);
-    if (current?.ws) {
-      try {
-        current.ws.send(JSON.stringify({ type: "exit", code: exitCode }));
-      } catch {}
-    }
-    activePtys.delete(tabId);
-  });
-
-  return entry;
 }
 
-function connectBridgeSocket(tabId: string, socketPath: string): PtyEntry | null {
+function connectBridgeSocket(tabId: string, sockPath: string): PtyEntry | null {
   const existing = activePtys.get(tabId);
   // If we already have a connected socket, reuse it
   if (existing?.socket && !existing.socket.destroyed) return existing;
@@ -106,7 +97,7 @@ function connectBridgeSocket(tabId: string, socketPath: string): PtyEntry | null
   const entry: PtyEntry = { scrollback: "" };
   activePtys.set(tabId, entry);
 
-  const sock = net.createConnection(socketPath);
+  const sock = net.createConnection(sockPath);
   entry.socket = sock;
 
   sock.on("data", (data: Buffer) => {
@@ -143,47 +134,44 @@ function connectBridgeSocket(tabId: string, socketPath: string): PtyEntry | null
 export function attachWs(tabId: string, ws: WebSocket, cwd?: string): void {
   let entry = activePtys.get(tabId);
 
-  if (!entry) {
-    if (tabId.startsWith('task-')) {
-      // Connect to bridge unix socket instead of spawning tmux attach
-      const shortId = tabId.slice(5); // strip "task-" prefix
-      const socketPath = `/tmp/proq/mc-${shortId}.sock`;
-
-      // Poll for socket file (up to 5 seconds)
-      let attempts = 0;
-      const maxAttempts = 10;
-      const tryConnect = () => {
-        attempts++;
-        if (existsSync(socketPath)) {
-          const connected = connectBridgeSocket(tabId, socketPath);
-          if (connected) {
-            finishAttach(tabId, connected, ws);
-          } else {
-            sendError(ws, tabId);
-          }
-        } else if (attempts < maxAttempts) {
-          setTimeout(tryConnect, 500);
-        } else {
-          console.error(`[pty] bridge socket not found after ${maxAttempts} attempts: ${socketPath}`);
-          sendError(ws, tabId);
-        }
-      };
-      tryConnect();
-      return;
+  // Try to reconnect if existing socket is destroyed
+  if (entry?.socket?.destroyed) {
+    const sock = socketPath(tabId);
+    if (existsSync(sock)) {
+      entry = connectBridgeSocket(tabId, sock) ?? undefined;
     } else {
-      entry = spawnPty(tabId, undefined, cwd) ?? undefined;
-    }
-  } else if (tabId.startsWith('task-') && entry.socket?.destroyed) {
-    // Socket was closed, try to reconnect
-    const shortId = tabId.slice(5);
-    const socketPath = `/tmp/proq/mc-${shortId}.sock`;
-    if (existsSync(socketPath)) {
-      entry = connectBridgeSocket(tabId, socketPath) ?? undefined;
+      entry = undefined;
     }
   }
 
   if (!entry) {
-    sendError(ws, tabId);
+    const sock = socketPath(tabId);
+
+    // For shell tabs, ensure tmux session exists
+    if (!tabId.startsWith("task-")) {
+      spawnShellSession(tabId, undefined, cwd);
+    }
+
+    // Poll for socket file (up to 5 seconds)
+    let attempts = 0;
+    const maxAttempts = 10;
+    const tryConnect = () => {
+      attempts++;
+      if (existsSync(sock)) {
+        const connected = connectBridgeSocket(tabId, sock);
+        if (connected) {
+          finishAttach(tabId, connected, ws);
+        } else {
+          sendError(ws, tabId);
+        }
+      } else if (attempts < maxAttempts) {
+        setTimeout(tryConnect, 500);
+      } else {
+        console.error(`[pty] bridge socket not found after ${maxAttempts} attempts: ${sock}`);
+        sendError(ws, tabId);
+      }
+    };
+    tryConnect();
     return;
   }
 
@@ -231,17 +219,8 @@ export function detachWs(tabId: string): void {
   if (!entry) return;
 
   entry.ws = undefined;
-
-  // For task terminals with bridge sockets, don't start cleanup timer —
-  // the bridge persists in tmux, we just disconnect locally
-  if (entry.socket) {
-    return;
-  }
-
-  // Start cleanup timer for shell terminals (5 min — survives HMR + page refreshes)
-  entry.disconnectTimer = setTimeout(() => {
-    killPty(tabId);
-  }, 300_000);
+  // All tabs now use bridge sockets — no cleanup timer needed.
+  // Shells persist in tmux until explicitly killed via killPty().
 }
 
 export function killPty(tabId: string): void {
@@ -253,8 +232,23 @@ export function killPty(tabId: string): void {
   if (entry.socket) {
     try { entry.socket.destroy(); } catch {}
   }
-  if (entry.pty) {
-    try { entry.pty.kill(); } catch {}
+
+  // Kill the tmux session
+  const session = sessionName(tabId);
+  try {
+    execSync(`tmux kill-session -t '${session}'`, { timeout: 5_000 });
+    console.log(`[pty] killed tmux session ${session}`);
+  } catch {
+    // Session may already be gone
+  }
+
+  // Clean up launcher script and socket files for shell tabs
+  if (!tabId.startsWith("task-")) {
+    const sock = socketPath(tabId);
+    const launcherFile = join(tmpdir(), "proq-prompts", `${session}.sh`);
+    try { if (existsSync(sock)) unlinkSync(sock); } catch {}
+    try { if (existsSync(sock + ".log")) unlinkSync(sock + ".log"); } catch {}
+    try { if (existsSync(launcherFile)) unlinkSync(launcherFile); } catch {}
   }
 
   activePtys.delete(tabId);
@@ -266,8 +260,6 @@ export function writeToPty(tabId: string, data: string): void {
 
   if (entry.socket && !entry.socket.destroyed) {
     try { entry.socket.write(data); } catch {}
-  } else if (entry.pty) {
-    entry.pty.write(data);
   }
 }
 
@@ -280,8 +272,6 @@ export function resizePty(tabId: string, cols: number, rows: number): void {
     try {
       entry.socket.write(JSON.stringify({ type: "resize", cols, rows }));
     } catch {}
-  } else if (entry.pty) {
-    try { entry.pty.resize(cols, rows); } catch {}
   }
 }
 

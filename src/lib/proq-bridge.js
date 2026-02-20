@@ -33,6 +33,7 @@ fs.mkdirSync(path.dirname(socketPath), { recursive: true });
 // Clean env: strip vars that cause issues
 const env = { ...process.env };
 delete env.CLAUDECODE;
+delete env.PORT;
 delete env.npm_config_prefix;
 for (const key of Object.keys(env)) {
   if (key.startsWith("npm_")) delete env[key];
