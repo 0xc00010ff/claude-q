@@ -244,6 +244,7 @@ export default function ProjectPage() {
               style={{ flexBasis: `${chatPercent}%` }}
               collapsed={terminalCollapsed}
               onToggleCollapsed={toggleTerminalCollapsed}
+              cleanupTimes={cleanupTimes}
             />
           </>
         )}

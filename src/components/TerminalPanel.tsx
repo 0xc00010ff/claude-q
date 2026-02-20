@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useState,
 } from 'react';
 import { Plus, X, TerminalIcon, ChevronUp, ChevronDown } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,18 +17,57 @@ interface TerminalPanelProps {
   style?: React.CSSProperties;
   collapsed: boolean;
   onToggleCollapsed: () => void;
+  cleanupTimes?: Record<string, number>;
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Panel component                                                            */
 /* -------------------------------------------------------------------------- */
 
-export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed }: TerminalPanelProps) {
+/* -------------------------------------------------------------------------- */
+/*  Cleanup countdown helper                                                   */
+/* -------------------------------------------------------------------------- */
+
+function useCleanupCountdown(expiresAt: number | undefined): string | null {
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    const interval = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  if (!expiresAt) return null;
+
+  const remaining = expiresAt - now;
+  if (remaining <= 0) return 'process will be terminated shortly';
+
+  const mins = Math.ceil(remaining / 60_000);
+  if (mins >= 60) {
+    const hrs = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `process will be terminated in ${hrs}h ${m}m`;
+  }
+  return `process will be terminated in ${mins}m`;
+}
+
+export default function TerminalPanel({ projectId, projectPath, style, collapsed, onToggleCollapsed, cleanupTimes }: TerminalPanelProps) {
   const { getTabs, getActiveTabId, setActiveTabId, openTab, closeTab } = useTerminalTabs();
   const panelRef = useRef<HTMLDivElement>(null);
 
   const tabs = getTabs(projectId);
   const activeTabId = getActiveTabId(projectId);
+
+  // Find cleanup expiry for the active task tab
+  const activeTab = tabs.find((t) => t.id === activeTabId);
+  let activeCleanupExpiresAt: number | undefined;
+  if (activeTab?.type === 'task' && cleanupTimes) {
+    // Tab ID is "task-{first8}", cleanup keys are full task IDs
+    const shortId = activeTab.id.replace('task-', '');
+    const matchingKey = Object.keys(cleanupTimes).find((k) => k.startsWith(shortId));
+    if (matchingKey) activeCleanupExpiresAt = cleanupTimes[matchingKey];
+  }
+  const countdownText = useCleanupCountdown(activeCleanupExpiresAt);
 
   // Load xterm CSS once
   useEffect(() => {
@@ -122,6 +162,13 @@ export default function TerminalPanel({ projectId, projectPath, style, collapsed
           {tabs.map((tab) => (
             <TerminalPane key={tab.id} tabId={tab.id} visible={activeTabId === tab.id} cwd={projectPath} />
           ))}
+        </div>
+      )}
+
+      {/* Cleanup countdown footer */}
+      {!collapsed && countdownText && (
+        <div className="px-3 py-1 text-xs text-zinc-600 dark:text-zinc-600 font-mono shrink-0">
+          {countdownText}
         </div>
       )}
     </div>
