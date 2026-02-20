@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useRef } from 'react';
-import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon } from 'lucide-react';
+import { GlobeIcon, MonitorIcon, TabletSmartphoneIcon, SmartphoneIcon, RotateCwIcon } from 'lucide-react';
 import type { Project } from '@/lib/types';
 import { useProjects } from '@/components/ProjectsProvider';
 
@@ -22,8 +22,11 @@ export function LiveTab({ project }: LiveTabProps) {
   const initialVp = project.liveViewport ?? 'desktop';
   const [viewport, setViewport] = useState<ViewportSize>(initialVp);
   const [size, setSize] = useState(initialVp !== 'desktop' ? PRESETS[initialVp] : { w: 768, h: 1024 });
+  const [iframeKey, setIframeKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const { refreshProjects } = useProjects();
+
+  const handleRefresh = () => setIframeKey(k => k + 1);
 
   const pickViewport = async (v: ViewportSize) => {
     setViewport(v);
@@ -114,6 +117,13 @@ export function LiveTab({ project }: LiveTabProps) {
           <div className="w-3 h-3 rounded-full bg-gold/20 border border-gold/50" />
           <div className="w-3 h-3 rounded-full bg-patina/20 border border-patina/50" />
         </div>
+        <button
+          onClick={handleRefresh}
+          title="Refresh"
+          className="p-1.5 rounded text-zinc-400 dark:text-zinc-600 hover:text-zinc-600 dark:hover:text-zinc-400 hover:bg-gunmetal-50 dark:hover:bg-zinc-800 transition-colors"
+        >
+          <RotateCwIcon className="w-3.5 h-3.5" />
+        </button>
         <div className="flex-1 flex justify-center">
           <div className="bg-gunmetal-50 dark:bg-zinc-950 border border-gunmetal-300 dark:border-zinc-800 rounded px-3 py-1 text-xs text-zinc-500 dark:text-zinc-400 flex items-center space-x-2 min-w-[300px]">
             <GlobeIcon className="w-3 h-3 shrink-0" />
@@ -180,7 +190,7 @@ export function LiveTab({ project }: LiveTabProps) {
                 maxWidth: '100%',
               }}
             >
-              <iframe src={project.serverUrl} className="w-full h-full border-0" />
+              <iframe key={iframeKey} src={project.serverUrl} className="w-full h-full border-0" />
             </div>
 
             {/* Right resize handle */}
@@ -213,7 +223,7 @@ export function LiveTab({ project }: LiveTabProps) {
           </div>
         </div>
       ) : (
-        <iframe src={project.serverUrl} className="flex-1 w-full border-0" />
+        <iframe key={iframeKey} src={project.serverUrl} className="flex-1 w-full border-0" />
       )}
     </div>
   );
