@@ -4,7 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { getAllProjects, getAllTasks, getExecutionMode, updateTask } from "./db";
 import { stripAnsi } from "./utils";
-import type { TaskMode } from "./types";
+import type { TaskAttachment, TaskMode } from "./types";
 
 const MC_API = "http://localhost:7331";
 const CLAUDE = process.env.CLAUDE_BIN || "claude";
@@ -104,6 +104,7 @@ export async function dispatchTask(
   taskTitle: string,
   taskDescription: string,
   mode?: TaskMode,
+  attachments?: TaskAttachment[],
 ): Promise<string | undefined> {
   // Look up project path
   const projects = await getAllProjects();
@@ -176,6 +177,26 @@ When completely finished, commit and signal complete:
 ${callbackCurl}
 `;
     claudeFlags = "--dangerously-skip-permissions";
+  }
+
+  // Write image attachments to temp files so the agent can read them
+  const imageFiles: string[] = [];
+  if (attachments?.length) {
+    const attachDir = join(tmpdir(), "proq-prompts", `${tmuxSession}-attachments`);
+    mkdirSync(attachDir, { recursive: true });
+    for (const att of attachments) {
+      if (att.dataUrl && att.type.startsWith("image/")) {
+        const match = att.dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+        if (match) {
+          const filePath = join(attachDir, att.name);
+          writeFileSync(filePath, Buffer.from(match[1], "base64"));
+          imageFiles.push(filePath);
+        }
+      }
+    }
+    if (imageFiles.length > 0) {
+      prompt += `\n## Attached Images\nThe following image files are attached to this task. Use your Read tool to view them:\n${imageFiles.map((f) => `- ${f}`).join("\n")}\n`;
+    }
   }
 
   // Write prompt to temp file to avoid shell escaping issues with complex descriptions
@@ -276,5 +297,6 @@ export async function dispatchNextQueued(projectId: string): Promise<void> {
     next.title,
     next.description,
     next.mode,
+    next.attachments,
   );
 }

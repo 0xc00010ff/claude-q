@@ -43,7 +43,7 @@ export async function PUT(request: Request, { params }: Params) {
         const task = previousTasks.find((t) => t.id === item.id);
         await updateTask(id, item.id, { locked: true });
         if (await shouldDispatch(id)) {
-          const terminalTabId = await dispatchTask(id, item.id, task?.title ?? "", task?.description ?? "", task?.mode);
+          const terminalTabId = await dispatchTask(id, item.id, task?.title ?? "", task?.description ?? "", task?.mode, task?.attachments);
           if (terminalTabId) {
             dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
           } else {

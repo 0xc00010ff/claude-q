@@ -26,7 +26,7 @@ export async function PATCH(request: Request, { params }: Params) {
         await updateTask(id, taskId, { locked: true });
         updated.locked = true;
         if (await shouldDispatch(id)) {
-          terminalTabId = await dispatchTask(id, taskId, updated.title, updated.description, updated.mode);
+          terminalTabId = await dispatchTask(id, taskId, updated.title, updated.description, updated.mode, updated.attachments);
           if (!terminalTabId) {
             await updateTask(id, taskId, { locked: false });
             updated.locked = false;
