@@ -43,13 +43,13 @@ src/
 │   ├── Sidebar.tsx             # Project list with status indicators
 │   ├── TopBar.tsx              # Project header + tab switcher
 │   ├── KanbanBoard.tsx         # 4-column drag-drop board (@dnd-kit)
-│   ├── TaskCard.tsx            # Individual task display (shows spinner when locked)
+│   ├── TaskCard.tsx            # Individual task display (shows spinner when dispatched)
 │   ├── TaskModal.tsx           # Unified task create/edit modal
 │   ├── ChatPanel.tsx           # Terminal-style chat interface
 │   ├── LiveTab.tsx             # Iframe dev server preview
 │   └── CodeTab.tsx             # Code editor launcher
 └── lib/
-    ├── agent-dispatch.ts       # tmux launch + abort + optional notifications
+    ├── agent-dispatch.ts       # tmux launch + abort + processQueue + optional notifications
     ├── db.ts                   # lowdb database operations
     ├── types.ts                # All TypeScript interfaces
     └── utils.ts                # cn() utility (clsx + tailwind-merge)
@@ -57,33 +57,40 @@ src/
 
 ### Agent Dispatch System (`src/lib/agent-dispatch.ts`)
 
-This is the core automation. When a task transitions to `in-progress`:
+Centralized via `processQueue(projectId)` — the single source of truth for what should be running. Called after any state change. Has a re-entrancy guard per project.
 
-1. **Launch:** `tmux new-session -d -s mc-{shortId} -c '{projectPath}' claude --dangerously-skip-permissions '{prompt}'`
-   - Session name: `mc-` + first 8 chars of taskId
-   - Runs in the project's directory
-2. **Prompt:** Includes task description + instructions to commit and run a callback curl
-3. **Callback:** Agent curls back when done:
-   ```bash
-   curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
-     -H 'Content-Type: application/json' \
-     -d '{"status":"verify","locked":false}'
-   ```
-4. **Notify:** Optional Slack notifications via `notify()` (requires `OPENCLAW_BIN` + `SLACK_CHANNEL` env vars)
-5. **Abort:** `abortTask()` kills the tmux session and unlocks the task
+- **Sequential mode:** dispatches first queued task if nothing is running
+- **Parallel mode:** dispatches all queued tasks immediately
 
-### Task Lifecycle & Locking
+Key functions:
+- `processQueue()` — reads all tasks, dispatches queued ones per mode
+- `dispatchTask()` — launches a tmux session with the agent prompt
+- `abortTask()` — kills the tmux session and cleans up socket/log files
+- `isTaskDispatched()` — checks if a tmux session is alive for a task
+- `scheduleCleanup()` — deferred cleanup (1hr) to capture agent logs after completion
+
+**Launch:** `tmux new-session -d -s mc-{shortId} -c '{projectPath}'` running the agent via a bridge script that exposes a PTY over a unix socket.
+
+**Callback:** Agent curls back when done:
+```bash
+curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
+  -H 'Content-Type: application/json' \
+  -d '{"status":"verify","dispatched":false}'
+```
+
+### Task Lifecycle & Dispatch
 
 ```
 todo ──drag/API──→ in-progress ──agent callback──→ verify ──human──→ done
-                   (locked=true)                   (locked=false)
-                   agent launched                   human reviews
+                   (dispatched=false → true)       (dispatched=false)
+                   queued → processQueue            human reviews
 ```
 
-- `locked: true` — Set when agent is dispatched, prevents UI edits
-- `locked: false` — Set when agent completes (callback) or task is aborted
-- Locked tasks show a spinner and blue pulsing border in the UI
-- Dragging back to "Todo" aborts the agent (kills tmux session)
+- `dispatched: false` + `status: in-progress` — task is **queued**, waiting for dispatch
+- `dispatched: true` + `status: in-progress` — agent is **actively working** (tmux session running)
+- Dispatched tasks show a spinner and blue pulsing border; queued tasks show a clock icon
+- Dragging back to "Todo" aborts the agent (kills tmux session), then `processQueue()` starts the next queued task
+- All API routes follow the pattern: update state → call `processQueue()`
 
 ### Data Layer
 - **`data/workspace.json`** — Project registry (id, name, path, status, serverUrl)
@@ -94,7 +101,7 @@ todo ──drag/API──→ in-progress ──agent callback──→ verify �
 
 ### Key Types (src/lib/types.ts)
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
-- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, locked, attachments, createdAt, updatedAt }`
+- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, dispatched, attachments, createdAt, updatedAt }`
 - **ChatLogEntry**: `{ role: 'proq'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
@@ -110,9 +117,11 @@ GET/POST       /api/projects/[id]/chat                # Chat history
 ```
 
 **Status change side effects in PATCH/reorder:**
-- → `in-progress`: sets `locked: true`, calls `dispatchTask()`, sends optional notification
-- `in-progress` → `todo`: sets `locked: false`, calls `abortTask()`
-- `in-progress` → `verify`: sends optional completion notification
+All routes follow the same pattern: update state, then call `processQueue()`.
+- → `in-progress`: sets `dispatched: false`, `processQueue()` handles dispatch
+- `in-progress` → `todo`: resets `dispatched`/findings/etc, calls `abortTask()`, then `processQueue()`
+- `in-progress` → `verify`/`done`: sends optional notification, `processQueue()` starts next queued task
+- Deleting an in-progress task also aborts and calls `processQueue()`
 
 ### Frontend Data Flow
 - Fetch all projects on mount, then tasks for each project
@@ -142,7 +151,7 @@ Tasks have fields specifically for AI agent use:
 - `findings` — Agent's analysis/findings (newline-separated)
 - `humanSteps` — Action items for human review (newline-separated)
 - `agentLog` — Execution log from agent session
-- `locked` — Boolean, true while agent is actively working
+- `dispatched` — Boolean, true while agent is actively working (false = queued)
 
 ## Important Notes
 - Path alias: `@/*` maps to `./src/*`
