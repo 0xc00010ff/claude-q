@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { reorderTasks, getProject, getAllTasks, updateTask } from "@/lib/db";
-import { dispatchTask, abortTask, shouldDispatch, dispatchNextQueued, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
+import { abortTask, processQueue, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -29,9 +29,7 @@ export async function PUT(request: Request, { params }: Params) {
 
   await reorderTasks(id, items);
 
-  // Detect status transitions and fire dispatch/abort
-  const dispatched: { taskId: string; terminalTabId: string; title: string }[] = [];
-
+  // Handle status transitions
   for (const item of items) {
     const prevStatus = prevStatusMap.get(item.id);
     const newStatus = item.status;
@@ -40,39 +38,26 @@ export async function PUT(request: Request, { params }: Params) {
     if (newStatus === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(item.id);
       if (prevStatus !== "verify") {
-        const task = previousTasks.find((t) => t.id === item.id);
-        await updateTask(id, item.id, { locked: true });
-        if (await shouldDispatch(id)) {
-          const terminalTabId = await dispatchTask(id, item.id, task?.title ?? "", task?.description ?? "", task?.mode, task?.attachments);
-          if (terminalTabId) {
-            dispatched.push({ taskId: item.id, terminalTabId, title: task?.title ?? "" });
-          } else {
-            // Dispatch failed — unlock so it doesn't get stuck as "queued"
-            await updateTask(id, item.id, { locked: false });
-          }
-        }
+        // Mark as not-yet-dispatched; processQueue will handle it
+        await updateTask(id, item.id, { dispatched: false });
       }
     } else if (newStatus === "todo" && prevStatus !== "todo") {
       cancelCleanup(item.id);
-      // Reset session data when moved back to todo from any status
-      await updateTask(id, item.id, { locked: false, findings: "", humanSteps: "", agentLog: "" });
+      await updateTask(id, item.id, { dispatched: false, findings: "", humanSteps: "", agentLog: "" });
       if (prevStatus === "in-progress") {
         abortTask(id, item.id).catch((e) =>
           console.error(`[reorder] abortTask failed for ${item.id}:`, e)
         );
       }
-    } else if (newStatus === "verify" || newStatus === "done") {
-      if (prevStatus === "in-progress") {
-        // Auto-dispatch next queued task in sequential mode
-        dispatchNextQueued(id).catch(e =>
-          console.error(`[reorder] auto-dispatch next failed:`, e)
-        );
-      }
-      if (newStatus === "done" && (prevStatus === "in-progress" || prevStatus === "verify")) {
-        scheduleCleanup(id, item.id);
-      }
+    } else if (newStatus === "done" && (prevStatus === "in-progress" || prevStatus === "verify")) {
+      scheduleCleanup(id, item.id);
     }
   }
 
-  return NextResponse.json({ success: true, dispatched });
+  // Single processQueue call at the end
+  processQueue(id).catch(e =>
+    console.error(`[reorder] processQueue failed:`, e)
+  );
+
+  return NextResponse.json({ success: true });
 }

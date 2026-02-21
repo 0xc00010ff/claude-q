@@ -20,18 +20,18 @@ interface TaskCardProps {
 
 export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: TaskCardProps) {
   const steps = parseLines(task.humanSteps);
-  const isLocked = task.status === 'in-progress' && task.locked;
+  const isDispatched = task.status === 'in-progress' && task.dispatched;
 
   return (
     <div
       className={`
         group relative bg-surface-secondary border rounded-md overflow-hidden
-        ${isLocked && !isQueued
+        ${isDispatched && !isQueued
           ? 'border-steel/40 shadow-[0_0_12px_rgba(91,131,176,0.15)] animate-pulse-subtle'
           : isQueued
           ? 'border-zinc-500/30'
           : 'border-border-default'}
-        ${isDragOverlay ? 'ring-1 ring-steel-dark shadow-lg shadow-black/20 dark:shadow-black/40' : `hover:bg-surface-hover cursor-pointer ${isLocked && !isQueued ? '' : 'hover:border-border-hover'}`}
+        ${isDragOverlay ? 'ring-1 ring-steel-dark shadow-lg shadow-black/20 dark:shadow-black/40' : `hover:bg-surface-hover cursor-pointer ${isDispatched && !isQueued ? '' : 'hover:border-border-hover'}`}
       `}
       onClick={() => !isDragOverlay && onClick?.(task)}
     >
@@ -78,7 +78,7 @@ export function TaskCard({ task, isDragOverlay, isQueued, onDelete, onClick }: T
                 Queued
               </span>
             </div>
-          ) : isLocked ? (
+          ) : isDispatched ? (
             <div className="flex items-center gap-1.5">
               <Loader2Icon className="w-3 h-3 text-steel animate-spin" />
               <span className="text-[10px] text-steel font-medium uppercase tracking-wide">

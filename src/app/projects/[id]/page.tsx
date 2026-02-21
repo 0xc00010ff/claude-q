@@ -24,7 +24,6 @@ export default function ProjectPage() {
   const [modalTask, setModalTask] = useState<Task | null>(null);
   const [agentModalTask, setAgentModalTask] = useState<Task | null>(null);
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('sequential');
-  const [dispatchedTaskIds, setDispatchedTaskIds] = useState<Set<string> | null>(null);
   const [cleanupTimes, setCleanupTimes] = useState<Record<string, number>>({});
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +54,6 @@ export default function ProjectPage() {
       const res = await fetch(`/api/projects/${projectId}/execution-mode`);
       const data = await res.json();
       setExecutionMode(data.mode);
-      setDispatchedTaskIds(new Set(data.dispatchedTaskIds ?? []));
       setCleanupTimes(data.cleanupTimes || {});
     } catch (e) {
       console.error('Failed to fetch execution mode:', e);
@@ -224,7 +222,6 @@ export default function ProjectPage() {
                 onRefreshTasks={refresh}
                 executionMode={executionMode}
                 onExecutionModeChange={handleExecutionModeChange}
-                dispatchedTaskIds={dispatchedTaskIds}
               />
             </div>
 
@@ -259,7 +256,7 @@ export default function ProjectPage() {
         <TaskAgentModal
           task={agentModalTask}
           projectId={projectId}
-          isQueued={agentModalTask.status === 'in-progress' && !!agentModalTask.locked && dispatchedTaskIds != null && !dispatchedTaskIds.has(agentModalTask.id)}
+          isQueued={agentModalTask.status === 'in-progress' && !agentModalTask.dispatched}
           cleanupExpiresAt={cleanupTimes[agentModalTask.id]}
           onClose={() => setAgentModalTask(null)}
           onComplete={async (taskId) => {

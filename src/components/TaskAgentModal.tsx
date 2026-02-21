@@ -33,7 +33,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
   const findings = parseLines(task.findings);
-  const isLocked = task.status === 'in-progress' && task.locked;
+  const isDispatched = task.status === 'in-progress' && task.dispatched;
   // Show terminal for done tasks too; fall back to static log only after cleanup has captured agentLog
   const showStaticLog = task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
   const showTerminal = (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;
@@ -194,7 +194,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   <ClockIcon className="w-3 h-3" />
                   Queued
                 </span>
-              ) : isLocked ? (
+              ) : isDispatched ? (
                 <span className="flex items-center gap-1.5 text-xs text-steel font-medium uppercase tracking-wide">
                   <Loader2Icon className="w-3 h-3 animate-spin" />
                   Agent working
@@ -277,8 +277,8 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
           </div>
 
           {/* Bottom half: agent findings & summary */}
-          <div ref={bottomPanelRef} className={`flex-1 min-h-0 overflow-y-auto ${isLocked && !isQueued && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
-            {findings.length > 0 || !isLocked || isQueued ? (
+          <div ref={bottomPanelRef} className={`flex-1 min-h-0 overflow-y-auto ${isDispatched && !isQueued && findings.length === 0 ? 'flex flex-col items-center justify-center p-5' : 'p-5 space-y-4'}`}>
+            {findings.length > 0 || !isDispatched || isQueued ? (
               <div className="flex items-center gap-2">
                 <ClipboardListIcon className="w-3.5 h-3.5 text-gunmetal-600 dark:text-zinc-500" />
                 <span className="text-xs font-medium text-gunmetal-600 dark:text-zinc-500 uppercase tracking-wide">
@@ -315,7 +315,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
                   ))}
                 </ul>
               </div>
-            ) : isLocked && !isQueued ? (
+            ) : isDispatched && !isQueued ? (
               <div className="flex flex-col items-center justify-center gap-3">
                 <Loader2Icon className="w-5 h-5 text-steel animate-spin" />
                 <span className="text-xs text-steel font-medium uppercase tracking-wide">

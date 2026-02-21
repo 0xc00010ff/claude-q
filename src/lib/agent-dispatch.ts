@@ -136,7 +136,7 @@ export async function dispatchTask(
   // Build the agent prompt
   const callbackCurl = `curl -s -X PATCH ${MC_API}/api/projects/${projectId}/tasks/${taskId} \\
   -H 'Content-Type: application/json' \\
-  -d '{"status":"verify","locked":false,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
+  -d '{"status":"verify","dispatched":false,"findings":"<newline-separated summary of what you did and found>","humanSteps":"<any steps the human should take to verify, or empty string>"}'`;
 
   let prompt: string;
   let claudeFlags: string;
@@ -264,39 +264,61 @@ export function isTaskDispatched(taskId: string): boolean {
   }
 }
 
-export async function shouldDispatch(projectId: string): Promise<boolean> {
-  const mode = await getExecutionMode(projectId);
-  if (mode === "parallel") return true;
+// Re-entrancy guard per project
+const processingProjects = new Set<string>();
 
-  // Sequential: check if any task is already actively dispatched
-  const tasks = await getAllTasks(projectId);
-  const inProgressTasks = tasks.filter(
-    (t) => t.status === "in-progress" && t.locked,
-  );
-  return !inProgressTasks.some((t) => isTaskDispatched(t.id));
-}
+export async function processQueue(projectId: string): Promise<void> {
+  if (processingProjects.has(projectId)) return;
+  processingProjects.add(projectId);
 
-export async function dispatchNextQueued(projectId: string): Promise<void> {
-  const mode = await getExecutionMode(projectId);
-  if (mode !== "sequential") return;
+  try {
+    const mode = await getExecutionMode(projectId);
+    const tasks = await getAllTasks(projectId);
 
-  const tasks = await getAllTasks(projectId);
-  const queued = tasks
-    .filter(
-      (t) => t.status === "in-progress" && t.locked && !isTaskDispatched(t.id),
-    )
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const queued = tasks
+      .filter((t) => t.status === "in-progress" && !t.dispatched)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  if (queued.length === 0) return;
+    const running = tasks.filter(
+      (t) => t.status === "in-progress" && t.dispatched && isTaskDispatched(t.id),
+    );
 
-  const next = queued[0];
-  console.log(`[agent-dispatch] auto-dispatching next queued task: ${next.id}`);
-  await dispatchTask(
-    projectId,
-    next.id,
-    next.title,
-    next.description,
-    next.mode,
-    next.attachments,
-  );
+    if (mode === "sequential") {
+      if (running.length === 0 && queued.length > 0) {
+        const next = queued[0];
+        console.log(`[agent-dispatch] processQueue: dispatching ${next.id}`);
+        await updateTask(projectId, next.id, { dispatched: true });
+        const result = await dispatchTask(
+          projectId,
+          next.id,
+          next.title,
+          next.description,
+          next.mode,
+          next.attachments,
+        );
+        if (!result) {
+          await updateTask(projectId, next.id, { dispatched: false });
+        }
+      }
+    } else {
+      // parallel: dispatch all queued
+      for (const task of queued) {
+        console.log(`[agent-dispatch] processQueue: dispatching ${task.id} (parallel)`);
+        await updateTask(projectId, task.id, { dispatched: true });
+        const result = await dispatchTask(
+          projectId,
+          task.id,
+          task.title,
+          task.description,
+          task.mode,
+          task.attachments,
+        );
+        if (!result) {
+          await updateTask(projectId, task.id, { dispatched: false });
+        }
+      }
+    }
+  } finally {
+    processingProjects.delete(projectId);
+  }
 }

@@ -43,7 +43,6 @@ interface KanbanBoardProps {
   onRefreshTasks?: () => void;
   executionMode?: ExecutionMode;
   onExecutionModeChange?: (mode: ExecutionMode) => void;
-  dispatchedTaskIds?: Set<string> | null;
 }
 
 const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
@@ -128,7 +127,6 @@ export function KanbanBoard({
   onRefreshTasks,
   executionMode = 'sequential',
   onExecutionModeChange,
-  dispatchedTaskIds,
 }: KanbanBoardProps) {
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
@@ -302,7 +300,7 @@ export function KanbanBoard({
     pendingCommitRef.current = finalTasks;
     onReorderTasks(finalTasks);
 
-    // If a task moved to in-progress, refresh after API settles to pick up locked state
+    // If a task moved to in-progress, refresh after API settles to pick up dispatched state
     if (movedToInProgress && onRefreshTasks) {
       setTimeout(onRefreshTasks, 500);
     }
@@ -383,7 +381,7 @@ export function KanbanBoard({
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                   <div className="flex-1 space-y-3 overflow-y-auto pb-4 px-1 min-h-[80px]">
                     {colTasks.map((task) => {
-                      const isQueued = column.id === 'in-progress' && task.locked && dispatchedTaskIds != null && !dispatchedTaskIds.has(task.id);
+                      const isQueued = column.id === 'in-progress' && !task.dispatched;
                       return (
                         <SortableTaskCard
                           key={task.id}
