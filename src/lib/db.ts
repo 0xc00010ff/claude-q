@@ -1,16 +1,16 @@
-import { JSONFilePreset } from "lowdb/node";
 import { v4 as uuidv4 } from "uuid";
-import { renameSync, existsSync as fsExists, mkdirSync } from "fs";
+import { renameSync, existsSync as fsExists, mkdirSync, readFileSync, writeFileSync } from "fs";
 import path from "path";
 import type {
   WorkspaceData,
   Project,
   ProjectState,
   Task,
+  TaskStatus,
+  TaskColumns,
   ChatLogEntry,
   ExecutionMode,
 } from "./types";
-import type { Low } from "lowdb";
 import { slugify } from "./utils";
 
 const DATA_DIR = path.join(process.cwd(), "data");
@@ -32,14 +32,14 @@ mkdirSync(path.join(DATA_DIR, "projects"), { recursive: true });
 
 // ── Singleton caches (attached to globalThis to survive HMR) ──
 const g = globalThis as unknown as {
-  __proqWorkspaceDb?: Low<WorkspaceData> | null;
-  __proqProjectDbs?: Map<string, Low<ProjectState>>;
+  __proqWorkspaceCache?: WorkspaceData | null;
+  __proqProjectCache?: Map<string, ProjectState>;
   __proqWriteLocks?: Map<string, Promise<void>>;
 };
-if (!g.__proqProjectDbs) g.__proqProjectDbs = new Map();
+if (!g.__proqProjectCache) g.__proqProjectCache = new Map();
 if (!g.__proqWriteLocks) g.__proqWriteLocks = new Map();
 
-const projectDbInstances = g.__proqProjectDbs;
+const projectCache = g.__proqProjectCache;
 const writeLocks = g.__proqWriteLocks;
 
 async function withWriteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
@@ -55,26 +55,91 @@ async function withWriteLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
   }
 }
 
-// ── Workspace DB (projects list) ─────────────────────────
-async function getWorkspaceDb() {
-  if (!g.__proqWorkspaceDb) {
-    const filePath = path.join(DATA_DIR, "workspace.json");
-    const defaultData: WorkspaceData = { projects: [] };
-    g.__proqWorkspaceDb = await JSONFilePreset<WorkspaceData>(filePath, defaultData);
-  }
-  return g.__proqWorkspaceDb;
+function emptyColumns(): TaskColumns {
+  return { "todo": [], "in-progress": [], "verify": [], "done": [] };
 }
 
-// ── Project DB (per-project tasks + chat) ────────────────
-async function getProjectDb(projectId: string) {
-  let db = projectDbInstances.get(projectId);
-  if (!db) {
-    const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
-    const defaultData: ProjectState = { tasks: [], chatLog: [] };
-    db = await JSONFilePreset<ProjectState>(filePath, defaultData);
-    projectDbInstances.set(projectId, db);
+// ── File I/O helpers ──
+function readJSON<T>(filePath: string, defaultData: T): T {
+  try {
+    if (fsExists(filePath)) {
+      return JSON.parse(readFileSync(filePath, "utf-8"));
+    }
+  } catch {
+    // Corrupt file — use default
   }
-  return db;
+  return defaultData;
+}
+
+function writeJSON(filePath: string, data: unknown): void {
+  writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
+}
+
+// ── Workspace DB (projects list) ─────────────────────────
+function getWorkspaceData(): WorkspaceData {
+  if (!g.__proqWorkspaceCache) {
+    const filePath = path.join(DATA_DIR, "workspace.json");
+    g.__proqWorkspaceCache = readJSON<WorkspaceData>(filePath, { projects: [] });
+  }
+  return g.__proqWorkspaceCache;
+}
+
+function writeWorkspace(): void {
+  const filePath = path.join(DATA_DIR, "workspace.json");
+  writeJSON(filePath, g.__proqWorkspaceCache);
+}
+
+// ── Project DB (per-project columns + chat) ────────────────
+function getProjectData(projectId: string): ProjectState {
+  let data = projectCache.get(projectId);
+  if (!data) {
+    const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
+    const raw = readJSON<ProjectState & { tasks?: Task[] }>(filePath, {
+      columns: emptyColumns(),
+      chatLog: [],
+    });
+
+    // Auto-migration: old flat tasks[] → column-oriented
+    if (raw.tasks && !raw.columns) {
+      const columns = emptyColumns();
+      const sorted = [...raw.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+      for (const task of sorted) {
+        const col = columns[task.status];
+        if (col) {
+          delete task.order;
+          col.push(task);
+        }
+      }
+      raw.columns = columns;
+      delete raw.tasks;
+      // Write migrated data back immediately
+      writeJSON(filePath, raw);
+    }
+
+    // Ensure columns exist even if file was empty
+    if (!raw.columns) raw.columns = emptyColumns();
+    if (!raw.chatLog) raw.chatLog = [];
+
+    data = raw as ProjectState;
+    projectCache.set(projectId, data);
+  }
+  return data;
+}
+
+function writeProject(projectId: string): void {
+  const filePath = path.join(DATA_DIR, "projects", `${projectId}.json`);
+  const data = projectCache.get(projectId);
+  if (data) writeJSON(filePath, data);
+}
+
+// Helper: find a task across all columns, returns [task, columnKey, index]
+function findTask(data: ProjectState, taskId: string): [Task, TaskStatus, number] | null {
+  for (const status of ["todo", "in-progress", "verify", "done"] as TaskStatus[]) {
+    const col = data.columns[status];
+    const idx = col.findIndex((t) => t.id === taskId);
+    if (idx !== -1) return [col[idx], status, idx];
+  }
+  return null;
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -82,13 +147,13 @@ async function getProjectDb(projectId: string) {
 // ═══════════════════════════════════════════════════════════
 
 export async function getAllProjects(): Promise<Project[]> {
-  const db = await getWorkspaceDb();
-  return [...db.data.projects].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const ws = getWorkspaceData();
+  return [...ws.projects].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 }
 
 export async function getProject(id: string): Promise<Project | undefined> {
-  const db = await getWorkspaceDb();
-  return db.data.projects.find((p) => p.id === id);
+  const ws = getWorkspaceData();
+  return ws.projects.find((p) => p.id === id);
 }
 
 function uniqueSlug(base: string, existing: string[]): string {
@@ -102,18 +167,18 @@ export async function createProject(
   data: Pick<Project, "name" | "path" | "serverUrl">
 ): Promise<Project> {
   return withWriteLock('workspace', async () => {
-  const db = await getWorkspaceDb();
-  const existingIds = db.data.projects.map((p) => p.id);
-  const project: Project = {
-    id: uniqueSlug(slugify(data.name), existingIds),
-    name: data.name,
-    path: data.path,
-    serverUrl: data.serverUrl,
-    createdAt: new Date().toISOString(),
-  };
-  db.data.projects.push(project);
-  await db.write();
-  return project;
+    const ws = getWorkspaceData();
+    const existingIds = ws.projects.map((p) => p.id);
+    const project: Project = {
+      id: uniqueSlug(slugify(data.name), existingIds),
+      name: data.name,
+      path: data.path,
+      serverUrl: data.serverUrl,
+      createdAt: new Date().toISOString(),
+    };
+    ws.projects.push(project);
+    writeWorkspace();
+    return project;
   });
 }
 
@@ -122,14 +187,14 @@ export async function updateProject(
   data: Partial<Pick<Project, "name" | "path" | "status" | "serverUrl" | "activeTab">>
 ): Promise<Project | null> {
   return withWriteLock('workspace', async () => {
-    const db = await getWorkspaceDb();
-    const project = db.data.projects.find((p) => p.id === id);
+    const ws = getWorkspaceData();
+    const project = ws.projects.find((p) => p.id === id);
     if (!project) return null;
 
     // If name is changing, update the slug-based id
     if (data.name && data.name !== project.name) {
       const newSlug = slugify(data.name);
-      const existingIds = db.data.projects.filter((p) => p.id !== id).map((p) => p.id);
+      const existingIds = ws.projects.filter((p) => p.id !== id).map((p) => p.id);
       const newId = uniqueSlug(newSlug, existingIds);
 
       // Rename state file
@@ -140,28 +205,28 @@ export async function updateProject(
       }
 
       // Update cache
-      const cached = projectDbInstances.get(id);
+      const cached = projectCache.get(id);
       if (cached) {
-        projectDbInstances.delete(id);
-        projectDbInstances.set(newId, cached);
+        projectCache.delete(id);
+        projectCache.set(newId, cached);
       }
 
       project.id = newId;
     }
 
     Object.assign(project, data);
-    await db.write();
+    writeWorkspace();
     return project;
   });
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
   return withWriteLock('workspace', async () => {
-    const db = await getWorkspaceDb();
-    const idx = db.data.projects.findIndex((p) => p.id === id);
+    const ws = getWorkspaceData();
+    const idx = ws.projects.findIndex((p) => p.id === id);
     if (idx === -1) return false;
-    db.data.projects.splice(idx, 1);
-    await db.write();
+    ws.projects.splice(idx, 1);
+    writeWorkspace();
     return true;
   });
 }
@@ -170,12 +235,12 @@ export async function reorderProjects(
   orderedIds: string[]
 ): Promise<boolean> {
   return withWriteLock('workspace', async () => {
-    const db = await getWorkspaceDb();
+    const ws = getWorkspaceData();
     for (let i = 0; i < orderedIds.length; i++) {
-      const project = db.data.projects.find((p) => p.id === orderedIds[i]);
+      const project = ws.projects.find((p) => p.id === orderedIds[i]);
       if (project) project.order = i;
     }
-    await db.write();
+    writeWorkspace();
     return true;
   });
 }
@@ -184,17 +249,18 @@ export async function reorderProjects(
 // TASKS
 // ═══════════════════════════════════════════════════════════
 
-export async function getAllTasks(projectId: string): Promise<Task[]> {
-  const db = await getProjectDb(projectId);
-  return [...db.data.tasks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+export async function getAllTasks(projectId: string): Promise<TaskColumns> {
+  const data = getProjectData(projectId);
+  return data.columns;
 }
 
 export async function getTask(
   projectId: string,
   taskId: string
 ): Promise<Task | undefined> {
-  const db = await getProjectDb(projectId);
-  return db.data.tasks.find((t) => t.id === taskId);
+  const data = getProjectData(projectId);
+  const found = findTask(data, taskId);
+  return found ? found[0] : undefined;
 }
 
 export async function createTask(
@@ -202,55 +268,74 @@ export async function createTask(
   data: Pick<Task, "title" | "description"> & { priority?: Task["priority"] }
 ): Promise<Task> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
+    const state = getProjectData(projectId);
     const now = new Date().toISOString();
-    const maxOrder = db.data.tasks.reduce((max, t) => Math.max(max, t.order ?? 0), 0);
     const task: Task = {
       id: uuidv4(),
       title: data.title,
       description: data.description,
       status: "todo",
       priority: data.priority,
-      order: maxOrder + 1,
       createdAt: now,
       updatedAt: now,
     };
-    db.data.tasks.push(task);
-    await db.write();
+    state.columns.todo.unshift(task);
+    writeProject(projectId);
     return task;
   });
 }
 
-export async function reorderTasks(
+export async function moveTask(
   projectId: string,
-  orderedIds: { id: string; order: number; status?: string }[]
-): Promise<boolean> {
+  taskId: string,
+  toColumn: TaskStatus,
+  toIndex: number
+): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
-    for (const item of orderedIds) {
-      const task = db.data.tasks.find((t) => t.id === item.id);
-      if (task) {
-        task.order = item.order;
-        if (item.status) task.status = item.status as Task["status"];
-        task.updatedAt = new Date().toISOString();
-      }
-    }
-    await db.write();
-    return true;
+    const state = getProjectData(projectId);
+    const found = findTask(state, taskId);
+    if (!found) return null;
+
+    const [task, fromColumn, fromIndex] = found;
+
+    // Splice from source
+    state.columns[fromColumn].splice(fromIndex, 1);
+
+    // Update status
+    task.status = toColumn;
+    task.updatedAt = new Date().toISOString();
+
+    // Insert at target index (clamped)
+    const targetCol = state.columns[toColumn];
+    const clampedIndex = Math.max(0, Math.min(toIndex, targetCol.length));
+    targetCol.splice(clampedIndex, 0, task);
+
+    writeProject(projectId);
+    return task;
   });
 }
 
 export async function updateTask(
   projectId: string,
   taskId: string,
-  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "order" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode">>
+  data: Partial<Pick<Task, "title" | "description" | "status" | "priority" | "findings" | "humanSteps" | "agentLog" | "dispatch" | "attachments" | "mode">>
 ): Promise<Task | null> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
-    const task = db.data.tasks.find((t) => t.id === taskId);
-    if (!task) return null;
+    const state = getProjectData(projectId);
+    const found = findTask(state, taskId);
+    if (!found) return null;
+
+    const [task, currentColumn, currentIndex] = found;
+
+    // If status is changing, move between columns
+    if (data.status && data.status !== currentColumn) {
+      state.columns[currentColumn].splice(currentIndex, 1);
+      task.status = data.status;
+      state.columns[data.status].unshift(task);
+    }
+
     Object.assign(task, data, { updatedAt: new Date().toISOString() });
-    await db.write();
+    writeProject(projectId);
     return task;
   });
 }
@@ -260,11 +345,13 @@ export async function deleteTask(
   taskId: string
 ): Promise<boolean> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
-    const idx = db.data.tasks.findIndex((t) => t.id === taskId);
-    if (idx === -1) return false;
-    db.data.tasks.splice(idx, 1);
-    await db.write();
+    const state = getProjectData(projectId);
+    const found = findTask(state, taskId);
+    if (!found) return false;
+
+    const [, column, index] = found;
+    state.columns[column].splice(index, 1);
+    writeProject(projectId);
     return true;
   });
 }
@@ -274,15 +361,15 @@ export async function deleteTask(
 // ═══════════════════════════════════════════════════════════
 
 export async function getExecutionMode(projectId: string): Promise<ExecutionMode> {
-  const db = await getProjectDb(projectId);
-  return db.data.executionMode ?? 'sequential';
+  const data = getProjectData(projectId);
+  return data.executionMode ?? 'sequential';
 }
 
 export async function setExecutionMode(projectId: string, mode: ExecutionMode): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
-    db.data.executionMode = mode;
-    await db.write();
+    const data = getProjectData(projectId);
+    data.executionMode = mode;
+    writeProject(projectId);
   });
 }
 
@@ -291,15 +378,15 @@ export async function setExecutionMode(projectId: string, mode: ExecutionMode): 
 // ═══════════════════════════════════════════════════════════
 
 export async function getTerminalOpen(projectId: string): Promise<boolean> {
-  const db = await getProjectDb(projectId);
-  return db.data.terminalOpen ?? false;
+  const data = getProjectData(projectId);
+  return data.terminalOpen ?? false;
 }
 
 export async function setTerminalOpen(projectId: string, open: boolean): Promise<void> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
-    db.data.terminalOpen = open;
-    await db.write();
+    const data = getProjectData(projectId);
+    data.terminalOpen = open;
+    writeProject(projectId);
   });
 }
 
@@ -308,8 +395,8 @@ export async function setTerminalOpen(projectId: string, open: boolean): Promise
 // ═══════════════════════════════════════════════════════════
 
 export async function getChatLog(projectId: string): Promise<ChatLogEntry[]> {
-  const db = await getProjectDb(projectId);
-  return db.data.chatLog;
+  const data = getProjectData(projectId);
+  return data.chatLog;
 }
 
 export async function addChatMessage(
@@ -317,15 +404,15 @@ export async function addChatMessage(
   data: Pick<ChatLogEntry, "role" | "message" | "toolCalls">
 ): Promise<ChatLogEntry> {
   return withWriteLock(`project:${projectId}`, async () => {
-    const db = await getProjectDb(projectId);
+    const state = getProjectData(projectId);
     const entry: ChatLogEntry = {
       role: data.role,
       message: data.message,
       timestamp: new Date().toISOString(),
       toolCalls: data.toolCalls,
     };
-    db.data.chatLog.push(entry);
-    await db.write();
+    state.chatLog.push(entry);
+    writeProject(projectId);
     return entry;
   });
 }

@@ -1,16 +1,16 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { Project, Task } from '@/lib/types';
+import type { Project, TaskColumns } from '@/lib/types';
 
 interface ProjectsContextValue {
   projects: Project[];
-  tasksByProject: Record<string, Task[]>;
+  tasksByProject: Record<string, TaskColumns>;
   isLoaded: boolean;
   refreshProjects: () => Promise<void>;
   refreshTasks: (projectId: string) => Promise<void>;
   setProjects: React.Dispatch<React.SetStateAction<Project[]>>;
-  setTasksByProject: React.Dispatch<React.SetStateAction<Record<string, Task[]>>>;
+  setTasksByProject: React.Dispatch<React.SetStateAction<Record<string, TaskColumns>>>;
 }
 
 const ProjectsContext = createContext<ProjectsContextValue | null>(null);
@@ -21,16 +21,23 @@ export function useProjects() {
   return ctx;
 }
 
+export const emptyColumns = (): TaskColumns => ({
+  "todo": [],
+  "in-progress": [],
+  "verify": [],
+  "done": [],
+});
+
 export function ProjectsProvider({ children }: { children: React.ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [tasksByProject, setTasksByProject] = useState<Record<string, Task[]>>({});
+  const [tasksByProject, setTasksByProject] = useState<Record<string, TaskColumns>>({});
   const [isLoaded, setIsLoaded] = useState(false);
 
   const refreshTasks = useCallback(async (projectId: string) => {
     const res = await fetch(`/api/projects/${projectId}/tasks`);
     if (!res.ok) return;
-    const tasks: Task[] = await res.json();
-    setTasksByProject((prev) => ({ ...prev, [projectId]: tasks }));
+    const columns: TaskColumns = await res.json();
+    setTasksByProject((prev) => ({ ...prev, [projectId]: columns }));
   }, []);
 
   const refreshProjects = useCallback(async () => {

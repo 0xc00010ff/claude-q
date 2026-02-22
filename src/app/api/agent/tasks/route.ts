@@ -7,20 +7,18 @@ export async function GET() {
     projectId: string;
     projectName: string;
     projectPath: string;
-    task: Awaited<ReturnType<typeof getAllTasks>>[number];
+    task: import("@/lib/types").Task;
   }[] = [];
 
   for (const project of projects) {
-    const tasks = await getAllTasks(project.id);
-    for (const task of tasks) {
-      if (task.status === "in-progress") {
-        results.push({
-          projectId: project.id,
-          projectName: project.name,
-          projectPath: project.path,
-          task,
-        });
-      }
+    const columns = await getAllTasks(project.id);
+    for (const task of columns["in-progress"]) {
+      results.push({
+        projectId: project.id,
+        projectName: project.name,
+        projectPath: project.path,
+        task,
+      });
     }
   }
 

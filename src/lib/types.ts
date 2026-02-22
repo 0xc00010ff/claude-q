@@ -40,7 +40,7 @@ export interface Task {
   status: TaskStatus;
   priority?: 'low' | 'medium' | 'high';
   mode?: TaskMode;
-  order?: number;
+  order?: number; // deprecated — kept for migration only
   findings?: string;
   humanSteps?: string;
   agentLog?: string;
@@ -49,6 +49,8 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
 }
+
+export type TaskColumns = Record<TaskStatus, Task[]>;
 
 // ── Chat ─────────────────────────────────────────────────
 export interface ToolCall {
@@ -73,9 +75,11 @@ export interface AgentSession {
 export type ExecutionMode = 'sequential' | 'parallel';
 
 export interface ProjectState {
-  tasks: Task[];
+  columns: TaskColumns;
   chatLog: ChatLogEntry[];
   agentSession?: AgentSession;
   executionMode?: ExecutionMode;
   terminalOpen?: boolean;
+  // Legacy field — present only in unmigrated files
+  tasks?: Task[];
 }

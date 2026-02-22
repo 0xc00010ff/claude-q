@@ -282,11 +282,10 @@ export async function getInitialDispatch(
   const mode = await getExecutionMode(projectId);
   if (mode === "parallel") return "starting";
 
-  const tasks = await getAllTasks(projectId);
-  const hasActive = tasks.some(
+  const columns = await getAllTasks(projectId);
+  const hasActive = columns["in-progress"].some(
     (t) =>
       t.id !== excludeTaskId &&
-      t.status === "in-progress" &&
       (t.dispatch === "starting" || t.dispatch === "running"),
   );
   return hasActive ? "queued" : "starting";
@@ -303,15 +302,16 @@ export async function processQueue(projectId: string): Promise<void> {
 
   try {
     const mode = await getExecutionMode(projectId);
-    const tasks = await getAllTasks(projectId);
+    const columns = await getAllTasks(projectId);
+    const inProgress = columns["in-progress"];
 
-    // "starting" = API already decided this should launch; "queued" = waiting
-    const pending = tasks
-      .filter((t) => t.status === "in-progress" && (t.dispatch === "queued" || t.dispatch === "starting"))
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    // Array order IS priority — no sort needed
+    const pending = inProgress.filter(
+      (t) => t.dispatch === "queued" || t.dispatch === "starting",
+    );
 
-    const running = tasks.filter(
-      (t) => t.status === "in-progress" && t.dispatch === "running",
+    const running = inProgress.filter(
+      (t) => t.dispatch === "running",
     );
 
     console.log(`[processQueue] ${projectId}: mode=${mode} running=${running.length} pending=${pending.length}`);

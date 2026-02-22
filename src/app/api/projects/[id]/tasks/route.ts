@@ -9,8 +9,8 @@ export async function GET(_request: Request, { params }: Params) {
   if (!project) {
     return NextResponse.json({ error: "Project not found" }, { status: 404 });
   }
-  const tasks = await getAllTasks(id);
-  return NextResponse.json(tasks);
+  const columns = await getAllTasks(id);
+  return NextResponse.json(columns);
 }
 
 export async function POST(request: Request, { params }: Params) {

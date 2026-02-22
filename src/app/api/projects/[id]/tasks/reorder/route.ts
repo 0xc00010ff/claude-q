@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { reorderTasks, getProject, getAllTasks, updateTask } from "@/lib/db";
+import { moveTask, getProject, getTask, updateTask } from "@/lib/db";
 import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
+import type { TaskStatus } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -12,43 +13,44 @@ export async function PUT(request: Request, { params }: Params) {
   }
 
   const body = await request.json();
-  const { items } = body as {
-    items: { id: string; order: number; status?: string }[];
+  const { taskId, toColumn, toIndex } = body as {
+    taskId: string;
+    toColumn: TaskStatus;
+    toIndex: number;
   };
 
-  if (!Array.isArray(items)) {
+  if (!taskId || !toColumn || toIndex == null) {
     return NextResponse.json(
-      { error: "items array is required" },
+      { error: "taskId, toColumn, and toIndex are required" },
       { status: 400 }
     );
   }
 
-  // Snapshot previous statuses before reorder
-  const previousTasks = await getAllTasks(id);
-  const prevStatusMap = new Map(previousTasks.map((t) => [t.id, t.status]));
+  // Snapshot previous status before move
+  const prevTask = await getTask(id, taskId);
+  const prevStatus = prevTask?.status;
 
-  await reorderTasks(id, items);
+  const moved = await moveTask(id, taskId, toColumn, toIndex);
+  if (!moved) {
+    return NextResponse.json({ error: "Task not found" }, { status: 404 });
+  }
 
   // Handle status transitions
-  for (const item of items) {
-    const prevStatus = prevStatusMap.get(item.id);
-    const newStatus = item.status;
-    if (!newStatus || prevStatus === newStatus) continue;
-
-    if (newStatus === "in-progress" && prevStatus !== "in-progress") {
-      cancelCleanup(item.id);
+  if (prevStatus && prevStatus !== toColumn) {
+    if (toColumn === "in-progress" && prevStatus !== "in-progress") {
+      cancelCleanup(taskId);
       if (prevStatus !== "verify") {
-        const dispatch = await getInitialDispatch(id, item.id);
-        await updateTask(id, item.id, { dispatch });
+        const dispatch = await getInitialDispatch(id, taskId);
+        await updateTask(id, taskId, { dispatch });
       }
-    } else if (newStatus === "todo" && prevStatus !== "todo") {
-      cancelCleanup(item.id);
-      await updateTask(id, item.id, { dispatch: null, findings: "", humanSteps: "", agentLog: "" });
+    } else if (toColumn === "todo" && prevStatus !== "todo") {
+      cancelCleanup(taskId);
+      await updateTask(id, taskId, { dispatch: null, findings: "", humanSteps: "", agentLog: "" });
       if (prevStatus === "in-progress") {
-        await abortTask(id, item.id);
+        await abortTask(id, taskId);
       }
-    } else if (newStatus === "done" && (prevStatus === "in-progress" || prevStatus === "verify")) {
-      scheduleCleanup(id, item.id);
+    } else if (toColumn === "done" && (prevStatus === "in-progress" || prevStatus === "verify")) {
+      scheduleCleanup(id, taskId);
     }
   }
 

@@ -30,7 +30,7 @@ import {
   AlertTriangleIcon,
   PencilIcon,
 } from "lucide-react";
-import type { Project, Task, TaskStatus } from "@/lib/types";
+import type { Project, Task, TaskStatus, TaskColumns } from "@/lib/types";
 import { useProjects } from "./ProjectsProvider";
 
 function folderName(project: Project): string {
@@ -43,10 +43,10 @@ interface SidebarProps {
   onMissingPath?: (project: Project) => void;
 }
 
-function TaskStatusSummary({ tasks }: { tasks: Task[] }) {
+function TaskStatusSummary({ columns }: { columns: TaskColumns }) {
   const counts: Partial<Record<TaskStatus, number>> = {};
-  for (const task of tasks) {
-    counts[task.status] = (counts[task.status] || 0) + 1;
+  for (const status of Object.keys(columns) as TaskStatus[]) {
+    if (columns[status].length > 0) counts[status] = columns[status].length;
   }
 
   const segments: React.ReactNode[] = [];
@@ -147,7 +147,7 @@ interface SortableProjectProps {
   project: Project;
   index: number;
   isActive: boolean;
-  tasks: Task[];
+  columns: TaskColumns;
   isRenaming: boolean;
   renameValue: string;
   onRenameChange: (value: string) => void;
@@ -162,7 +162,7 @@ function SortableProject({
   project,
   index,
   isActive,
-  tasks,
+  columns,
   isRenaming,
   renameValue,
   onRenameChange,
@@ -277,7 +277,7 @@ function SortableProject({
           {pathInvalid ? (
             <span className="text-crimson dark:text-crimson text-[11px]">Folder not found</span>
           ) : (
-            <TaskStatusSummary tasks={tasks} />
+            <TaskStatusSummary columns={columns} />
           )}
         </div>
       </div>
@@ -431,14 +431,14 @@ export function Sidebar({ onAddProject, onMissingPath }: SidebarProps) {
           >
             {projects.map((project, index) => {
               const isActive = pathname === `/projects/${project.id}`;
-              const tasks = tasksByProject[project.id] || [];
+              const cols = tasksByProject[project.id] || { todo: [], "in-progress": [], verify: [], done: [] };
               return (
                 <SortableProject
                   key={project.id}
                   project={project}
                   index={index}
                   isActive={isActive}
-                  tasks={tasks}
+                  columns={cols}
                   isRenaming={renamingId === project.id}
                   renameValue={renameValue}
                   onRenameChange={setRenameValue}

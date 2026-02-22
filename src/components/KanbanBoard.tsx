@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import {
   DndContext,
@@ -31,12 +31,12 @@ import {
   LayersIcon,
   ChevronDownIcon,
 } from 'lucide-react';
-import type { Task, TaskStatus, ExecutionMode } from '@/lib/types';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
 import { TaskCard } from './TaskCard';
 
 interface KanbanBoardProps {
-  tasks: Task[];
-  onReorderTasks: (reordered: Task[]) => void;
+  tasks: TaskColumns;
+  onMoveTask: (taskId: string, toColumn: TaskStatus, toIndex: number) => void;
   onAddTask?: () => void;
   onDeleteTask?: (taskId: string) => void;
   onClickTask?: (task: Task) => void;
@@ -51,6 +51,15 @@ const COLUMNS: { id: TaskStatus; label: string; icon: React.ReactNode }[] = [
   { id: 'verify', label: 'Verify', icon: <SearchCheckIcon className="w-3.5 h-3.5 text-gold" /> },
   { id: 'done', label: 'Done', icon: <CheckCircle2Icon className="w-3.5 h-3.5 text-patina" /> },
 ];
+
+function deepCopyColumns(cols: TaskColumns): TaskColumns {
+  return {
+    "todo": cols.todo.map((t) => ({ ...t })),
+    "in-progress": cols["in-progress"].map((t) => ({ ...t })),
+    "verify": cols.verify.map((t) => ({ ...t })),
+    "done": cols.done.map((t) => ({ ...t })),
+  };
+}
 
 function DroppableColumn({
   id,
@@ -118,9 +127,17 @@ function SortableTaskCard({
   );
 }
 
+// Find which column a task is in
+function findTaskColumn(columns: TaskColumns, taskId: string): TaskStatus | null {
+  for (const status of ["todo", "in-progress", "verify", "done"] as TaskStatus[]) {
+    if (columns[status].some((t) => t.id === taskId)) return status;
+  }
+  return null;
+}
+
 export function KanbanBoard({
   tasks,
-  onReorderTasks,
+  onMoveTask,
   onAddTask,
   onDeleteTask,
   onClickTask,
@@ -131,26 +148,24 @@ export function KanbanBoard({
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
-  const [localTasks, setLocalTasks] = useState<Task[] | null>(null);
-  const pendingCommitRef = useRef<Task[] | null>(null);
+  const [localColumns, setLocalColumns] = useState<TaskColumns | null>(null);
+  const pendingCommitRef = useRef<boolean>(false);
   const lastOverIdRef = useRef<string | null>(null);
-  const [pendingRerun, setPendingRerun] = useState<{ finalTasks: Task[]; taskTitle: string } | null>(null);
+  const [pendingRerun, setPendingRerun] = useState<{ taskId: string; toColumn: TaskStatus; toIndex: number; taskTitle: string } | null>(null);
   const [modeDropdownOpen, setModeDropdownOpen] = useState(false);
   const modeDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
   useClickOutside(modeDropdownRef, () => setModeDropdownOpen(false), modeDropdownOpen);
 
-  // Clear localTasks once the parent props reflect the committed drag result
+  // Clear localColumns once parent props reflect the committed drag result
   useEffect(() => {
-    if (pendingCommitRef.current && localTasks) {
-      // Parent props updated after our commit — safe to drop local override
-      pendingCommitRef.current = null;
-      setLocalTasks(null);
+    if (pendingCommitRef.current && localColumns) {
+      pendingCommitRef.current = false;
+      setLocalColumns(null);
     }
   }, [tasks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const workingTasks = localTasks ?? tasks;
+  const columns = localColumns ?? tasks;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -158,86 +173,82 @@ export function KanbanBoard({
     })
   );
 
-  const activeDragTask = activeDragId ? workingTasks.find((t) => t.id === activeDragId) : null;
-
-  const columnTasks = useMemo(() => {
-    const map: Record<TaskStatus, Task[]> = {
-      'todo': [],
-      'in-progress': [],
-      'verify': [],
-      'done': [],
-    };
-    for (const task of workingTasks) {
-      map[task.status]?.push(task);
-    }
-    return map;
-  }, [workingTasks]);
+  // Find the active drag task across all columns
+  const activeDragTask = activeDragId
+    ? (() => {
+        for (const col of Object.values(columns)) {
+          const t = col.find((t) => t.id === activeDragId);
+          if (t) return t;
+        }
+        return null;
+      })()
+    : null;
 
   function handleDragStart(event: DragStartEvent) {
     setActiveDragId(event.active.id as string);
     const node = event.active.rect.current.initial;
-    if (node) {
-      setDragWidth(node.width);
-    }
-    setLocalTasks([...tasks]);
+    if (node) setDragWidth(node.width);
+    setLocalColumns(deepCopyColumns(tasks));
   }
 
   function handleDragOver(event: DragOverEvent) {
     const { active, over } = event;
-    if (!over || !localTasks) return;
+    if (!over || !localColumns) return;
     if (over.id === lastOverIdRef.current) return;
     lastOverIdRef.current = over.id as string;
 
     const activeId = active.id as string;
     const overId = over.id as string;
-    const activeTask = localTasks.find((t) => t.id === activeId);
-    if (!activeTask) return;
 
-    // Determine which column is being hovered
+    const activeColumn = findTaskColumn(localColumns, activeId);
+    if (!activeColumn) return;
+
+    // Determine target column
     const isOverColumn = COLUMNS.some((c) => c.id === overId);
     let targetStatus: TaskStatus;
 
     if (isOverColumn) {
       targetStatus = overId as TaskStatus;
     } else {
-      const overTask = localTasks.find((t) => t.id === overId);
-      if (!overTask) return;
-      targetStatus = overTask.status;
+      const overCol = findTaskColumn(localColumns, overId);
+      if (!overCol) return;
+      targetStatus = overCol;
     }
 
     setOverColumnId(targetStatus);
 
-    if (activeTask.status !== targetStatus) {
+    if (activeColumn !== targetStatus) {
       // Moving to a different column
-      setLocalTasks((prev) => {
+      setLocalColumns((prev) => {
         if (!prev) return prev;
-        const current = prev.find((t) => t.id === activeId);
-        if (!current || current.status === targetStatus) return prev;
-        return prev.map((t) =>
-          t.id === activeId ? { ...t, status: targetStatus, order: -1 } : t
-        );
+        const srcCol = [...prev[activeColumn]];
+        const srcIdx = srcCol.findIndex((t) => t.id === activeId);
+        if (srcIdx === -1) return prev;
+
+        const [task] = srcCol.splice(srcIdx, 1);
+        task.status = targetStatus;
+
+        const destCol = [...prev[targetStatus]];
+        // Insert at position of the over item, or end if dropping on column itself
+        if (!isOverColumn) {
+          const overIdx = destCol.findIndex((t) => t.id === overId);
+          destCol.splice(overIdx >= 0 ? overIdx : destCol.length, 0, task);
+        } else {
+          destCol.push(task);
+        }
+
+        return { ...prev, [activeColumn]: srcCol, [targetStatus]: destCol };
       });
     } else if (!isOverColumn) {
       // Reordering within same column
-      setLocalTasks((prev) => {
+      setLocalColumns((prev) => {
         if (!prev) return prev;
-        const colTasks = prev.filter((t) => t.status === targetStatus);
+        const colTasks = [...prev[targetStatus]];
         const oldIndex = colTasks.findIndex((t) => t.id === activeId);
         const newIndex = colTasks.findIndex((t) => t.id === overId);
         if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return prev;
 
-        const reordered = arrayMove(colTasks, oldIndex, newIndex);
-        const orderMap = new Map<string, number>();
-        reordered.forEach((t, i) => orderMap.set(t.id, i));
-
-        return prev.map((t) => {
-          if (t.status === targetStatus && orderMap.has(t.id)) {
-            const newOrder = orderMap.get(t.id)!;
-            if (t.order === newOrder) return t;
-            return { ...t, order: newOrder };
-          }
-          return t;
-        });
+        return { ...prev, [targetStatus]: arrayMove(colTasks, oldIndex, newIndex) };
       });
     }
   }
@@ -249,59 +260,35 @@ export function KanbanBoard({
     setDragWidth(null);
     lastOverIdRef.current = null;
 
-    if (!localTasks) {
-      setLocalTasks(null);
+    if (!localColumns) {
+      setLocalColumns(null);
       return;
     }
 
     const activeId = active.id as string;
-    const activeTask = localTasks.find((t) => t.id === activeId);
-    if (!activeTask) {
-      setLocalTasks(null);
+    const toColumn = findTaskColumn(localColumns, activeId);
+    if (!toColumn) {
+      setLocalColumns(null);
       return;
     }
 
-    // Finalize order for the target column
-    const targetStatus = activeTask.status;
-    const colTasks = localTasks
-      .filter((t) => t.status === targetStatus)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const toIndex = localColumns[toColumn].findIndex((t) => t.id === activeId);
+    const fromColumn = findTaskColumn(tasks, activeId);
 
-    // Assign clean sequential orders
-    const finalTasks = localTasks.map((t) => {
-      if (t.status === targetStatus) {
-        const idx = colTasks.findIndex((ct) => ct.id === t.id);
-        return { ...t, order: idx };
-      }
-      return t;
-    });
-
-    // Check if a task is being rerun (verify/done → in-progress)
-    const rerunTask = finalTasks.find((t) => {
-      const original = tasks.find((ot) => ot.id === t.id);
-      return original && (original.status === 'verify' || original.status === 'done') && t.status === 'in-progress';
-    });
-
-    if (rerunTask) {
-      // Snap card back visually and show confirmation dialog
-      setLocalTasks(null);
-      setPendingRerun({ finalTasks, taskTitle: rerunTask.title });
+    // Check if task is being rerun (verify/done → in-progress)
+    if (fromColumn && (fromColumn === 'verify' || fromColumn === 'done') && toColumn === 'in-progress') {
+      const task = localColumns[toColumn][toIndex];
+      setLocalColumns(null);
+      setPendingRerun({ taskId: activeId, toColumn, toIndex, taskTitle: task.title });
       return;
     }
 
-    // Check if any task moved into in-progress
-    const movedToInProgress = finalTasks.some((t) => {
-      const original = tasks.find((ot) => ot.id === t.id);
-      return original && original.status !== 'in-progress' && t.status === 'in-progress';
-    });
+    // Commit
+    pendingCommitRef.current = true;
+    onMoveTask(activeId, toColumn, toIndex);
 
-    // Keep localTasks as optimistic state until parent props catch up
-    setLocalTasks(finalTasks);
-    pendingCommitRef.current = finalTasks;
-    onReorderTasks(finalTasks);
-
-    // If a task moved to in-progress, refresh after API settles to pick up dispatched state
-    if (movedToInProgress && onRefreshTasks) {
+    // If moved to in-progress, refresh after API settles
+    if (fromColumn !== toColumn && toColumn === 'in-progress' && onRefreshTasks) {
       setTimeout(onRefreshTasks, 500);
     }
   }
@@ -311,7 +298,7 @@ export function KanbanBoard({
     setOverColumnId(null);
     setDragWidth(null);
     lastOverIdRef.current = null;
-    setLocalTasks(null);
+    setLocalColumns(null);
   }
 
   return (
@@ -326,9 +313,7 @@ export function KanbanBoard({
       >
         <div className="flex h-full min-w-[1000px] px-6 pt-6 space-x-4">
           {COLUMNS.map((column) => {
-            const colTasks = columnTasks[column.id].sort(
-              (a, b) => (a.order ?? 0) - (b.order ?? 0)
-            );
+            const colTasks = columns[column.id];
             const isOver = overColumnId === column.id;
             const taskIds = colTasks.map((t) => t.id);
 
@@ -378,20 +363,17 @@ export function KanbanBoard({
                   </span>
                 </div>
 
-                {column.id === 'todo' && onAddTask && (
-                  <div className="px-1">
-                    <button
-                      onClick={onAddTask}
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
-                    >
-                      <PlusIcon className="w-3.5 h-3.5" />
-                      <span>Add</span>
-                    </button>
-                  </div>
-                )}
-
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                   <div className="flex-1 space-y-3 overflow-y-auto pb-4 px-1 min-h-[80px]">
+                    {column.id === 'todo' && onAddTask && (
+                      <button
+                        onClick={onAddTask}
+                        className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-md bg-surface-secondary border border-border-default hover:bg-surface-hover hover:border-border-hover text-text-chrome hover:text-text-chrome-hover text-xs"
+                      >
+                        <PlusIcon className="w-3.5 h-3.5" />
+                        <span>Add</span>
+                      </button>
+                    )}
                     {colTasks.map((task) => {
                       const isQueued = task.dispatch === 'queued';
                       return (
@@ -444,11 +426,10 @@ export function KanbanBoard({
               </button>
               <button
                 onClick={() => {
-                  const { finalTasks } = pendingRerun;
+                  const { taskId, toColumn, toIndex } = pendingRerun;
                   setPendingRerun(null);
-                  setLocalTasks(finalTasks);
-                  pendingCommitRef.current = finalTasks;
-                  onReorderTasks(finalTasks);
+                  pendingCommitRef.current = true;
+                  onMoveTask(taskId, toColumn, toIndex);
                   if (onRefreshTasks) {
                     setTimeout(onRefreshTasks, 500);
                   }

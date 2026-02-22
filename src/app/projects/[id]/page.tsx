@@ -10,7 +10,8 @@ import { CodeTab } from '@/components/CodeTab';
 import { TaskModal } from '@/components/TaskModal';
 import { TaskAgentModal } from '@/components/TaskAgentModal';
 import { useProjects } from '@/components/ProjectsProvider';
-import type { Task, ExecutionMode } from '@/lib/types';
+import { emptyColumns } from '@/components/ProjectsProvider';
+import type { Task, TaskStatus, TaskColumns, ExecutionMode } from '@/lib/types';
 
 export default function ProjectPage() {
   const params = useParams();
@@ -28,7 +29,7 @@ export default function ProjectPage() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const project = projects.find((p) => p.id === projectId);
-  const tasks = tasksByProject[projectId] || [];
+  const columns: TaskColumns = tasksByProject[projectId] || emptyColumns();
 
   // Update document title with project id (slug)
   useEffect(() => {
@@ -80,10 +81,16 @@ export default function ProjectPage() {
   // Keep agent modal in sync with polled task data
   useEffect(() => {
     if (agentModalTask) {
-      const updated = tasks.find((t) => t.id === agentModalTask.id);
-      if (updated) setAgentModalTask(updated);
+      // Search across all columns
+      for (const col of Object.values(columns)) {
+        const updated = col.find((t) => t.id === agentModalTask.id);
+        if (updated) {
+          setAgentModalTask(updated);
+          break;
+        }
+      }
     }
-  }, [tasks]);
+  }, [columns]);
 
   const deleteTask = async (taskId: string) => {
     await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
@@ -92,17 +99,11 @@ export default function ProjectPage() {
     refresh();
   };
 
-  const reorderTasks = async (reordered: Task[]) => {
-    const items = reordered.map((t) => ({
-      id: t.id,
-      order: t.order ?? 0,
-      status: t.status,
-    }));
-
+  const moveTask = async (taskId: string, toColumn: TaskStatus, toIndex: number) => {
     await fetch(`/api/projects/${projectId}/tasks/reorder`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ taskId, toColumn, toIndex }),
     });
 
     refresh();
@@ -208,8 +209,8 @@ export default function ProjectPage() {
               style={terminalCollapsed ? undefined : { flexBasis: `${100 - chatPercent}%` }}
             >
               <KanbanBoard
-                tasks={tasks}
-                onReorderTasks={reorderTasks}
+                tasks={columns}
+                onMoveTask={moveTask}
                 onAddTask={handleAddTask}
                 onDeleteTask={deleteTask}
                 onClickTask={(task) => {
@@ -260,11 +261,7 @@ export default function ProjectPage() {
           cleanupExpiresAt={cleanupTimes[agentModalTask.id]}
           onClose={() => setAgentModalTask(null)}
           onComplete={async (taskId) => {
-            const doneTasks = tasks.filter(t => t.status === 'done');
-            const minOrder = doneTasks.length > 0
-              ? Math.min(...doneTasks.map(t => t.order ?? 0))
-              : 0;
-            await updateTask(taskId, { status: 'done', order: minOrder - 1 });
+            await updateTask(taskId, { status: 'done' });
             setAgentModalTask(null);
           }}
         />
@@ -283,29 +280,36 @@ export default function ProjectPage() {
           }}
           onSave={updateTask}
           onMoveToInProgress={async (taskId, currentData) => {
-            const taskData = tasks.find((t) => t.id === taskId) || modalTask!;
             // Save task content while modal still shows spinner
             await fetch(`/api/projects/${projectId}/tasks/${taskId}`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(currentData),
             });
-            // Close modal and optimistically show task in "In Progress"
+            // Close modal and optimistically update
             setModalTask(null);
-            setTasksByProject((prev) => ({
-              ...prev,
-              [projectId]: (prev[projectId] || []).map((t) =>
-                t.id === taskId ? { ...t, ...currentData, status: 'in-progress' as const } : t
-              ),
-            }));
-            // Dispatch in background
-            fetch(`/api/projects/${projectId}/tasks/reorder`, {
+            setTasksByProject((prev) => {
+              const cols = prev[projectId] || emptyColumns();
+              const todoCol = cols.todo.filter((t) => t.id !== taskId);
+              const task = cols.todo.find((t) => t.id === taskId);
+              if (!task) return prev;
+              const updatedTask = { ...task, ...currentData, status: 'in-progress' as const };
+              return {
+                ...prev,
+                [projectId]: {
+                  ...cols,
+                  todo: todoCol,
+                  "in-progress": [updatedTask, ...cols["in-progress"]],
+                },
+              };
+            });
+            // Dispatch via moveTask API
+            await fetch(`/api/projects/${projectId}/tasks/reorder`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                items: [{ id: taskId, order: taskData.order ?? 0, status: 'in-progress' }],
-              }),
-            }).then(() => refresh());
+              body: JSON.stringify({ taskId, toColumn: 'in-progress', toIndex: 0 }),
+            });
+            refresh();
           }}
         />
       )}
