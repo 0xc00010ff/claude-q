@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { reorderTasks, getProject, getAllTasks, updateTask } from "@/lib/db";
-import { abortTask, processQueue, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
+import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup } from "@/lib/agent-dispatch";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -38,12 +38,12 @@ export async function PUT(request: Request, { params }: Params) {
     if (newStatus === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(item.id);
       if (prevStatus !== "verify") {
-        // Mark as not-yet-running; processQueue will handle it
-        await updateTask(id, item.id, { running: false });
+        const dispatch = await getInitialDispatch(id, item.id);
+        await updateTask(id, item.id, { dispatch });
       }
     } else if (newStatus === "todo" && prevStatus !== "todo") {
       cancelCleanup(item.id);
-      await updateTask(id, item.id, { running: false, findings: "", humanSteps: "", agentLog: "" });
+      await updateTask(id, item.id, { dispatch: null, findings: "", humanSteps: "", agentLog: "" });
       if (prevStatus === "in-progress") {
         await abortTask(id, item.id);
       }
@@ -52,8 +52,8 @@ export async function PUT(request: Request, { params }: Params) {
     }
   }
 
-  // Single processQueue call at the end
-  await processQueue(id);
+  // processQueue handles dispatch — detached so the response returns immediately
+  processQueue(id);
 
   return NextResponse.json({ success: true });
 }

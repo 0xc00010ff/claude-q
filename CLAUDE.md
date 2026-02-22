@@ -75,20 +75,22 @@ Key functions:
 ```bash
 curl -s -X PATCH http://localhost:7331/api/projects/{projectId}/tasks/{taskId} \
   -H 'Content-Type: application/json' \
-  -d '{"status":"verify","running":false}'
+  -d '{"status":"verify","dispatch":null}'
 ```
 
 ### Task Lifecycle & Dispatch
 
 ```
 todo ──drag/API──→ in-progress ──agent callback──→ verify ──human──→ done
-                   (running=false → true)           (running=false)
-                   queued → processQueue            human reviews
+                   dispatch: "queued"
+                   dispatch: "starting" (tmux launching)
+                   dispatch: "running"  (agent working)
 ```
 
-- `running: false` + `status: in-progress` — task is **queued**, waiting for dispatch
-- `running: true` + `status: in-progress` — agent is **actively working** (tmux session running)
-- Dispatched tasks show a spinner and blue pulsing border; queued tasks show a clock icon
+- `dispatch: "queued"` — waiting for another task or for processQueue to pick it up
+- `dispatch: "starting"` — processQueue selected it, tmux is launching
+- `dispatch: "running"` — agent is actively working (tmux session alive)
+- Running tasks show blue pulsing border; starting tasks show gray spinner; queued tasks show clock icon
 - Dragging back to "Todo" aborts the agent (kills tmux session), then `processQueue()` starts the next queued task
 - All API routes follow the pattern: update state → call `processQueue()`
 
@@ -101,7 +103,7 @@ todo ──drag/API──→ in-progress ──agent callback──→ verify �
 
 ### Key Types (src/lib/types.ts)
 - **Project**: `{ id, name, path, status, serverUrl, createdAt }`
-- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, running, attachments, createdAt, updatedAt }`
+- **Task**: `{ id, title, description, status, priority, order, findings, humanSteps, agentLog, dispatch, attachments, createdAt, updatedAt }`
 - **ChatLogEntry**: `{ role: 'proq'|'user', message, timestamp, toolCalls? }`
 - Task statuses: `todo` → `in-progress` → `verify` → `done`
 - Project statuses: `active`, `review`, `idle`, `error`
@@ -118,8 +120,8 @@ GET/POST       /api/projects/[id]/chat                # Chat history
 
 **Status change side effects in PATCH/reorder:**
 All routes follow the same pattern: update state, then call `processQueue()`.
-- → `in-progress`: sets `running: false`, `await processQueue()` handles dispatch
-- `in-progress` → `todo`: resets `running`/findings/etc, `await abortTask()`, then `await processQueue()`
+- → `in-progress`: sets `dispatch: "queued"`, `await processQueue()` handles dispatch
+- `in-progress` → `todo`: clears `dispatch`/findings/etc, `await abortTask()`, then `await processQueue()`
 - `in-progress` → `verify`/`done`: sends optional notification, `await processQueue()` starts next queued task
 - Deleting an in-progress task also awaits abort and processQueue
 
@@ -151,7 +153,7 @@ Tasks have fields specifically for AI agent use:
 - `findings` — Agent's analysis/findings (newline-separated)
 - `humanSteps` — Action items for human review (newline-separated)
 - `agentLog` — Execution log from agent session
-- `running` — Boolean, true while agent is actively working (false = queued)
+- `dispatch` — Enum: `"queued"` | `"starting"` | `"running"` | null (task dispatch lifecycle)
 
 ## Important Notes
 - Path alias: `@/*` maps to `./src/*`

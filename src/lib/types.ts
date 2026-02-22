@@ -44,7 +44,7 @@ export interface Task {
   findings?: string;
   humanSteps?: string;
   agentLog?: string;
-  running?: boolean;
+  dispatch?: "queued" | "starting" | "running" | null;
   attachments?: TaskAttachment[];
   createdAt: string;
   updatedAt: string;

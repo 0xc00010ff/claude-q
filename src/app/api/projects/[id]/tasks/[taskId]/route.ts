@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getTask, updateTask, deleteTask } from "@/lib/db";
-import { abortTask, processQueue, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
+import type { Task } from "@/lib/types";
+import { abortTask, processQueue, getInitialDispatch, scheduleCleanup, cancelCleanup, notify } from "@/lib/agent-dispatch";
 
 type Params = { params: Promise<{ id: string; taskId: string }> };
 
@@ -22,13 +23,13 @@ export async function PATCH(request: Request, { params }: Params) {
     if (body.status === "in-progress" && prevStatus !== "in-progress") {
       cancelCleanup(taskId);
       if (prevStatus !== "verify") {
-        // New dispatch: mark as not-yet-running, processQueue will handle it
-        await updateTask(id, taskId, { running: false });
-        updated.running = false;
+        const dispatch = await getInitialDispatch(id, taskId);
+        await updateTask(id, taskId, { dispatch });
+        updated.dispatch = dispatch;
       }
     } else if (body.status === "todo" && prevStatus !== "todo") {
       cancelCleanup(taskId);
-      const resetFields = { running: false, findings: "", humanSteps: "", agentLog: "" };
+      const resetFields = { dispatch: null as Task["dispatch"], findings: "", humanSteps: "", agentLog: "" };
       await updateTask(id, taskId, resetFields);
       Object.assign(updated, resetFields);
       if (prevStatus === "in-progress") {
@@ -43,8 +44,9 @@ export async function PATCH(request: Request, { params }: Params) {
       scheduleCleanup(id, taskId);
     }
 
-    // Single processQueue call handles all dispatch needs
-    await processQueue(id);
+    // processQueue handles dispatch — detached so the response returns immediately
+    // (processQueue has its own try/catch so it won't throw)
+    processQueue(id);
   }
 
   return NextResponse.json(updated);

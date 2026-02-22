@@ -381,7 +381,7 @@ export function KanbanBoard({
                 <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
                   <div className="flex-1 space-y-3 overflow-y-auto pb-4 px-1 min-h-[80px]">
                     {colTasks.map((task) => {
-                      const isQueued = column.id === 'in-progress' && !task.running;
+                      const isQueued = task.dispatch === 'queued';
                       return (
                         <SortableTaskCard
                           key={task.id}

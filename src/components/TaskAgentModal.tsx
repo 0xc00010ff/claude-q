@@ -33,7 +33,7 @@ export function TaskAgentModal({ task, projectId, isQueued, cleanupExpiresAt, on
   const terminalTabId = `task-${shortId}`;
   const steps = parseLines(task.humanSteps);
   const findings = parseLines(task.findings);
-  const isDispatched = task.status === 'in-progress' && task.running;
+  const isDispatched = task.dispatch === 'running' || task.dispatch === 'starting';
   // Show terminal for done tasks too; fall back to static log only after cleanup has captured agentLog
   const showStaticLog = task.status === 'done' && !cleanupExpiresAt && !!task.agentLog;
   const showTerminal = (task.status === 'in-progress' || task.status === 'verify' || (task.status === 'done' && !showStaticLog)) && !isQueued;

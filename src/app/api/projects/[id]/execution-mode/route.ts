@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: Params) {
   await setExecutionMode(id, mode);
 
   // processQueue will dispatch queued tasks according to the new mode
-  await processQueue(id);
+  processQueue(id);
 
   return NextResponse.json({ mode });
 }
